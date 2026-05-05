@@ -147,41 +147,6 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // ── Column metadata (all columns, including ones not in boardCards) ──
-  const allColumnMeta: Record<string, { name: string; color: string; isTerminal: boolean }> = {
-    'col-1': { name: 'A Fazer', color: '#6b7280', isTerminal: false },
-    'col-2': { name: 'Em Andamento', color: '#3b82f6', isTerminal: false },
-    'col-3': { name: 'Concluído', color: '#22c55e', isTerminal: true },
-  }
-
-  // ── Mutable board card state ──
-  let boardCards = [
-    {
-      id: 'col-1', channelId: 'ch-board', name: 'A Fazer', color: '#6b7280', position: 0, isTerminal: false,
-      _count: { cards: 1 },
-      cards: [
-        {
-          id: 'card-1', columnId: 'col-1', title: 'Tarefa 1', description: null,
-          priority: 'medium', priorityColor: '#f59e0b', due: null, dueType: 'normal',
-          progress: 0, position: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-          labels: [], assignees: [], commentCount: 0, threadCount: 0,
-        },
-      ],
-    },
-    {
-      id: 'col-3', channelId: 'ch-board', name: 'Concluído', color: '#22c55e', position: 2, isTerminal: true,
-      _count: { cards: 1 },
-      cards: [
-        {
-          id: 'card-2', columnId: 'col-3', title: 'Tarefa 2', description: null,
-          priority: 'high', priorityColor: '#ef4444', due: null, dueType: 'normal',
-          progress: 100, position: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-          labels: [], assignees: [], commentCount: 0, threadCount: 0,
-        },
-      ],
-    },
-  ]
-
   // Board
   http.get(`${API_URL}/api/channels/:channelId/columns`, () => {
     return HttpResponse.json([
