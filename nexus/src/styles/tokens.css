@@ -1,0 +1,74 @@
+/* ═══════════════════════════════════════════════════════════
+   NEXUS Design Tokens
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Surface Colors ─── */
+:root {
+  --base: #0c0c0d;
+  --s1:   #111113;
+  --s2:   #18181b;
+  --s3:   #1f1f23;
+  --s4:   #27272c;
+  --s5:   #2e2e35;
+
+  /* Borders */
+  --b1: rgba(255,255,255,0.05);
+  --b2: rgba(255,255,255,0.08);
+  --b3: rgba(255,255,255,0.13);
+
+  /* Accent */
+  --acc:   #4b7cf6;
+  --acc-s: rgba(75,124,246,0.10);
+  --acc-b: rgba(75,124,246,0.25);
+
+  /* Status */
+  --grn:   #30d158;
+  --grn-s: rgba(48,209,88,0.10);
+  --yel:   #f5a623;
+  --red:   #ff453a;
+
+  /* Text */
+  --t1: #f2f2f4;
+  --t2: #8e8e93;
+  --t3: #48484a;
+  --t4: #2c2c2e;
+
+  /* Typography */
+  --font-display: 'Geist', sans-serif;
+  --font-body:    'Geist', sans-serif;
+  --font-mono:    'Geist Mono', monospace;
+
+  /* Radii */
+  --r:    8px;
+  --r-sm: 5px;
+}
+
+/* ─── Legacy aliases (for compatibility) ─── */
+:root {
+  --bg-base:  var(--base);
+  --bg-panel: var(--s1);
+  --bg-card:  var(--s2);
+  --bg-hover: var(--s3);
+  --bg-surface: var(--s4);
+
+  --border:      var(--b1);
+  --border-soft: var(--b2);
+  --border-bold: var(--b3);
+
+  --accent:     var(--acc);
+  --accent-soft: var(--acc-s);
+  --accent-border: var(--acc-b);
+
+  --green:  var(--grn);
+  --green-soft: var(--grn-s);
+  --yellow: var(--yel);
+  --red:    var(--red);
+
+  --text-1: var(--t1);
+  --text-2: var(--t2);
+  --text-3: var(--t3);
+  --text-4: var(--t4);
+
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-card:  0 4px 16px rgba(0,0,0,0.2);
+}

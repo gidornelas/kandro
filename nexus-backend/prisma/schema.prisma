@@ -1,0 +1,489 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & Users ─────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  initials     String?
+  color        String?
+  image        String?
+  role         String   @default("Membro")
+  status       String   @default("online") // online | busy | away | dnd | offline
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships    WorkspaceMember[]
+  messages       Message[]
+  reactions      Reaction[]
+  cardAssignees  CardAssignee[]
+  cardComments   CardComment[]
+  teamMembers    TeamMember[]
+  fileNodes      FileNode[]        @relation("FileUploadedBy")
+  voiceSessions  VoiceSession[]    @relation("VoiceSessionUser")
+  voiceParticipants VoiceParticipant[]
+  activities     Activity[]
+  refreshTokens  RefreshToken[]
+  projectMembers ProjectMember[]
+  dmRoomsA       DirectMessageRoom[] @relation("DMUserA")
+  dmRoomsB       DirectMessageRoom[] @relation("DMUserB")
+  dmMessages     DirectMessage[]
+  cardThreadMessages CardThreadMessage[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ─── Workspaces ───────────────────────────────────────────
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  initials  String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members  WorkspaceMember[]
+  channels Channel[]
+  teams    Team[]
+  files    FileNode[]        @relation("WorkspaceFiles")
+  activities Activity[]
+  projects Project[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   @default("member") // owner | admin | member
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+// ─── Channels ─────────────────────────────────────────────
+
+model Channel {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  icon        String   @default("#")
+  type        String   @default("text") // text | board | voice
+  description String?  @map("desc")
+  private     Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  messages      Message[]
+  kanbanColumns KanbanColumn[]
+  voiceSessions VoiceSession[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("channels")
+}
+
+// ─── Messages ─────────────────────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  channelId String   @map("channel_id")
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  reactions Reaction[]
+  attachment Attachment?
+  taskCard   TaskCardRef?
+
+  @@index([channelId, createdAt])
+  @@index([userId])
+  @@map("messages")
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("reactions")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  messageId String   @unique @map("message_id")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  name      String
+  size      Int
+  icon      String
+  encrypted Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("attachments")
+}
+
+model TaskCardRef {
+  id            String    @id @default(cuid())
+  messageId     String    @unique @map("message_id")
+  message       Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  label         String
+  labelColor    String    @map("label_color")
+  title         String
+  due           DateTime?
+  priority      String
+  priorityColor String   @map("priority_color")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("task_card_refs")
+}
+
+// ─── Kanban Boards ────────────────────────────────────────
+
+model KanbanColumn {
+  id        String   @id @default(cuid())
+  channelId String   @map("channel_id")
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#9899b0")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cards KanbanCard[] @relation("ColumnCards")
+
+  @@unique([channelId, name])
+  @@index([channelId, position])
+  @@map("kanban_columns")
+}
+
+model KanbanCard {
+  id          String    @id @default(cuid())
+  columnId    String    @map("column_id")
+  column      KanbanColumn @relation("ColumnCards", fields: [columnId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  priority    String    @default("Média")
+  priorityColor String  @default("#fbbf24") @map("priority_color")
+  due         DateTime?
+  dueType     String    @default("normal") @map("due_type") // normal | warning | overdue
+  progress    Int      @default(0)
+  position    Float    @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  labels     CardLabel[]    @relation("CardLabels")
+  assignees  CardAssignee[]
+  subtasks  Subtask[]
+  comments  CardComment[]
+  cardThreadMessages CardThreadMessage[]
+
+  @@index([columnId, position])
+  @@map("kanban_cards")
+}
+
+model CardLabel {
+  id     String @id @default(cuid())
+  cardId String @map("card_id")
+  card   KanbanCard @relation("CardLabels", fields: [cardId], references: [id], onDelete: Cascade)
+  name   String
+  color  String
+
+  @@index([cardId])
+  @@map("card_labels")
+}
+
+model CardAssignee {
+  id     String @id @default(cuid())
+  cardId String @map("card_id")
+  card   KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
+  @@index([userId])
+  @@map("card_assignees")
+}
+
+model Subtask {
+  id     String  @id @default(cuid())
+  cardId String  @map("card_id")
+  card   KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  text   String
+  done   Boolean @default(false)
+  position Int   @default(0)
+
+  @@index([cardId])
+  @@map("subtasks")
+}
+
+model CardComment {
+  id        String   @id @default(cuid())
+  cardId    String   @map("card_id")
+  card      KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([cardId])
+  @@map("card_comments")
+}
+
+// ─── Teams & Permissions ──────────────────────────────────
+
+model Team {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  color       String   @default("#7c6af7")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members     TeamMember[]
+  permissions TeamPermission[]
+  fileAccess  FileNodeTeam[]
+
+  @@index([workspaceId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String @map("team_id")
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model TeamPermission {
+  id           String @id @default(cuid())
+  teamId       String @map("team_id")
+  team         Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  resourceId   String @map("resource_id")
+  resourceType String @map("resource_type") // channel | board | folder | doc
+  level        String @default("view")      // none | view | edit
+
+  @@unique([teamId, resourceId, resourceType])
+  @@index([resourceId])
+  @@map("team_permissions")
+}
+
+// ─── Files (Cloudflare R2) ────────────────────────────────
+
+model FileNode {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation("WorkspaceFiles", fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentId    String?   @map("parent_id")
+  parent      FileNode?  @relation("FileChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    FileNode[] @relation("FileChildren")
+  name        String
+  type        String    @default("file") // folder | file
+  icon        String?   @default("📄")
+  mimeType    String?   @map("mime_type")
+  size        Int?      // bytes
+  storageKey  String?   @map("storage_key") // R2 object key (null for folders)
+  uploadedById String?  @map("uploaded_by")
+  uploadedBy  User?     @relation("FileUploadedBy", fields: [uploadedById], references: [id])
+  encrypted   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  teams FileNodeTeam[]
+
+  @@index([workspaceId, parentId])
+  @@index([parentId])
+  @@map("file_nodes")
+}
+
+model FileNodeTeam {
+  id         String   @id @default(cuid())
+  fileNodeId String   @map("file_node_id")
+  fileNode   FileNode @relation(fields: [fileNodeId], references: [id], onDelete: Cascade)
+  teamId     String   @map("team_id")
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([fileNodeId, teamId])
+  @@map("file_node_teams")
+}
+
+// ─── Voice (LiveKit integration) ──────────────────────────
+
+model VoiceSession {
+  id           String   @id @default(cuid())
+  channelId    String   @map("channel_id")
+  channel      Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomName     String   @map("room_name")
+  active       Boolean  @default(true)
+  startedById  String   @map("started_by")
+  startedBy    User     @relation("VoiceSessionUser", fields: [startedById], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+  endedAt      DateTime? @map("ended_at")
+
+  participants VoiceParticipant[]
+
+  @@unique([channelId, active])
+  @@index([channelId])
+  @@index([roomName])
+  @@map("voice_sessions")
+}
+
+model VoiceParticipant {
+  id         String   @id @default(cuid())
+  sessionId  String   @map("session_id")
+  session    VoiceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muted      Boolean  @default(false)
+  cameraOn   Boolean  @default(false)
+  sharing    Boolean  @default(false)
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  leftAt     DateTime? @map("left_at")
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@map("voice_participants")
+}
+
+// ─── Activity Log ─────────────────────────────────────────
+
+model Activity {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String   // moveu | criou | concluiu | comentou | anexou | etc
+  targetId    String?  @map("target_id")
+  targetType  String?  @map("target_type") // card | message | file | channel
+  targetName  String?  @map("target_name")
+  targetColor String?  @map("target_color")
+  metadata    Json?    // extra payload
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, createdAt])
+  @@index([userId])
+  @@map("activities")
+}
+
+// ─── Projects ─────────────────────────────────────────────
+
+model Project {
+  id        String   @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name      String
+  status    String   @default("Em andamento")
+  dateRange String?  @map("date_range")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members   ProjectMember[]
+
+  @@index([workspaceId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// ─── Direct Messages ──────────────────────────────────────
+
+model DirectMessageRoom {
+  id        String   @id @default(cuid())
+  userAId   String   @map("user_a_id")
+  userA     User     @relation("DMUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId   String   @map("user_b_id")
+  userB     User     @relation("DMUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  messages  DirectMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@map("dm_rooms")
+}
+
+model DirectMessage {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  room      DirectMessageRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([roomId, createdAt])
+  @@index([userId])
+  @@map("dm_messages")
+}
+
+// ─── Card Threads ─────────────────────────────────────────
+
+model CardThreadMessage {
+  id        String   @id @default(cuid())
+  cardId    String   @map("card_id")
+  card      KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([cardId, createdAt])
+  @@index([userId])
+  @@map("card_thread_messages")
+}

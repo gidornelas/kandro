@@ -1,0 +1,44 @@
+# Dependencies
+**/node_modules/
+
+# Build artifacts
+**/dist/
+**/*.tsbuildinfo
+
+# Environment files with real values
+**/.env
+**/.env.local
+**/.env.dev
+**/.env.staging
+**/.env.prod
+
+# Keep templates/examples versioned
+!**/.env.example
+!**/.env.railway.example
+
+# Logs
+**/*.log
+npm-debug.log*
+bun-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Tauri / Rust build outputs
+**/src-tauri/target/
+
+# Coverage / test outputs
+**/coverage/
+**/playwright-report/
+**/test-results/
+
+# Local docs / agent runtime metadata not meant for publish
+.ougi/
+ougi.json
+docs/
+AGENTS.md
+SETUP.md
+NEXUS_ROADMAP.md
+NEXUS_ROADMAP.md.bak
+nexus.html
