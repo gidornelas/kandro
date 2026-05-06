@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { Server as SocketServer } from "socket.io";
 import { io as ioClient, Socket as ClientSocket } from "socket.io-client";
 import { createAdapter } from "@socket.io/redis-adapter";
-import { Redis } from "ioredis";
+import Redis from "ioredis-mock";
 import { createServer } from "http";
 
 const PORT_A = 4001;
