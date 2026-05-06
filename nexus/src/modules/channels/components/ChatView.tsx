@@ -140,17 +140,24 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string
 
 export function ChatView() {
   const activeChannelId = useUIStore((s) => s.activeChannelId)
-  const messages = useMessagesStore((s) => s.getChannelMessages(activeChannelId || ''))
+  const allMessages = useMessagesStore((s) => s.messages)
   const sendMessage = useMessagesStore((s) => s.sendMessage)
   const [input, setInput] = React.useState('')
   const [isLoading] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
+  const messages = React.useMemo(() => {
+    if (!activeChannelId) return []
+    return allMessages.filter((m) => m.channel === activeChannelId)
+  }, [allMessages, activeChannelId])
+
+  const msgCount = messages.length
+
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length])
+  }, [msgCount])
 
   const handleSend = () => {
     const text = input.trim()

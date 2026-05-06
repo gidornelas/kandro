@@ -76,17 +76,24 @@ export function DmView() {
   const activeDmId = useUIStore((s) => s.activeDmId)
   const dm = DMS.find((d) => d.id === activeDmId)
   const user = dm ? USERS[dm.userId] : null
-  const messages = useDmStore((s) => s.getMessages(activeDmId || ''))
+  const conversations = useDmStore((s) => s.conversations)
   const sendDm = useDmStore((s) => s.sendDm)
   const [input, setInput] = React.useState('')
   const [isLoading] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
+  const messages = React.useMemo(() => {
+    if (!activeDmId) return []
+    return conversations[activeDmId] || []
+  }, [conversations, activeDmId])
+
+  const msgCount = messages.length
+
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length])
+  }, [msgCount])
 
   const handleSend = () => {
     const text = input.trim()

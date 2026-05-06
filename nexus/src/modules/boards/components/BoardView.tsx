@@ -135,9 +135,17 @@ function KanbanCardItem({ card }: { card: { id: string; title: string; labels: s
   )
 }
 
-function KanbanColumn({ col, columnCards }: { col: { id: string; name: string; color: string }; columnCards: { id: string; title: string; labels: string[]; priority: string; priorityColor: string; assignees: string[]; dueType: string; progress: number; threadCount: number }[] }) {
+const KanbanColumn = React.memo(function KanbanColumn({ colId }: { colId: string }) {
+  const col = useBoardStore((s) => s.columns.find((c) => c.id === colId))
+  const allCards = useBoardStore((s) => s.cards)
   const openAddCard = useBoardStore((s) => s.openAddCard)
-  const { setNodeRef, isOver } = useDroppable({ id: col.id })
+  const { setNodeRef, isOver } = useDroppable({ id: colId })
+
+  const columnCards = React.useMemo(() => {
+    return allCards.filter((c) => c.col === colId)
+  }, [allCards, colId])
+
+  if (!col) return null
 
   return (
     <div
@@ -184,7 +192,7 @@ function KanbanColumn({ col, columnCards }: { col: { id: string; name: string; c
       </button>
     </div>
   )
-}
+})
 
 export function BoardView() {
   const columns = useBoardStore((s) => s.columns)
@@ -214,18 +222,16 @@ export function BoardView() {
   const handleDragEnd = React.useCallback((event: { active: { id: string | number }; over: { id: string | number } | null }) => {
     setActiveId(null)
     if (!event.over) return
-    const activeId = String(event.active.id)
-    const overId = String(event.over.id)
-    const card = cards.find((c) => c.id === activeId)
+    const activeIdStr = String(event.active.id)
+    const overIdStr = String(event.over.id)
+    const card = cards.find((c) => c.id === activeIdStr)
     if (!card) return
-    // Drop on column
-    const targetCol = columns.find((c) => c.id === overId)
+    const targetCol = columns.find((c) => c.id === overIdStr)
     if (targetCol) {
       moveCard(card.id, targetCol.id)
       return
     }
-    // Drop on another card -> move to same column
-    const overCard = cards.find((c) => c.id === overId)
+    const overCard = cards.find((c) => c.id === overIdStr)
     if (overCard && overCard.col !== card.col) {
       moveCard(card.id, overCard.col)
     }
@@ -291,11 +297,7 @@ export function BoardView() {
             ) : (
               <>
                 {columns.map((col) => (
-                  <KanbanColumn
-                    key={col.id}
-                    col={col}
-                    columnCards={cards.filter((c) => c.col === col.id)}
-                  />
+                  <KanbanColumn key={col.id} colId={col.id} />
                 ))}
                 <div style={{ width: '260px', flexShrink: 0 }}>
                   {showAddCol ? (
