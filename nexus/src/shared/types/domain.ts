@@ -185,6 +185,10 @@ export interface KanbanCard {
   attachments: number
   progress: number
   threadCount: number
+  description?: string
+  subtasks?: { id: string; text: string; done: boolean }[]
+  dueDate?: string
+  files?: { name: string; size: string; icon: string }[]
 }
 
 export interface TimelineEvent {

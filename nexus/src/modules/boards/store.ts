@@ -52,6 +52,10 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       attachments: 0,
       progress: 0,
       threadCount: 0,
+      description: '',
+      subtasks: [],
+      dueDate: '',
+      files: [],
     }
     set({ cards: [...get().cards, card], addingToColumn: null })
   },
