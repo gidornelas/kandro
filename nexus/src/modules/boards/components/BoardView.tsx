@@ -1,25 +1,46 @@
 import React from 'react'
-import { useUIStore } from '../../ui/store'
-import { KANBAN_COLUMNS, KANBAN_CARDS, USERS } from '../../../shared/mocks'
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { useBoardStore } from '../store'
+import { USERS } from '../../../shared/mocks'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { CardModal } from './CardModal'
+import { AddCardInline } from './AddCardInline'
+import { ColumnHeader } from './ColumnHeader'
 
-const KanbanCardItem = React.memo(function KanbanCardItem({ card }: { card: typeof KANBAN_CARDS[0] }) {
-  const openThread = useUIStore((s) => s.openThread)
+function KanbanCardItem({ card }: { card: ReturnType<typeof useBoardStore.getState>['cards'][0] }) {
+  const openCardModal = useBoardStore((s) => s.openCardModal)
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id, data: { card } })
+
   const isOverdue = card.dueType === 'overdue'
   const isWarning = card.dueType === 'warning'
 
   return (
     <div
-      onClick={() => openThread(card.id)}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={() => openCardModal(card.id)}
       style={{
         background: 'var(--color-surface-elevated)',
         border: '1px solid var(--color-border-subtle)',
         borderRadius: '14px',
         padding: '12px 13px',
-        cursor: 'pointer',
+        cursor: 'grab',
         transition: 'all .2s',
         position: 'relative',
+        opacity: isDragging ? 0.5 : 1,
+        transform: isDragging ? 'scale(1.02)' : 'none',
+        boxShadow: isDragging ? 'var(--shadow-soft)' : 'none',
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget
@@ -38,7 +59,7 @@ const KanbanCardItem = React.memo(function KanbanCardItem({ card }: { card: type
     >
       {card.labels.length > 0 && (
         <div style={{ display: 'flex', gap: '5px', marginBottom: '7px', flexWrap: 'wrap' }}>
-          {card.labels.map((label, i) => (
+          {card.labels.map((label: string, i: number) => (
             <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#2f80ed', opacity: 0.72 }} />
               {label}
@@ -51,7 +72,7 @@ const KanbanCardItem = React.memo(function KanbanCardItem({ card }: { card: type
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <div style={{ display: 'flex' }}>
-          {card.assignees.map((uid, i) => {
+          {card.assignees.map((uid: string, i: number) => {
             const u = USERS[uid]
             return (
               <div
@@ -112,11 +133,77 @@ const KanbanCardItem = React.memo(function KanbanCardItem({ card }: { card: type
       )}
     </div>
   )
-})
+}
+
+function KanbanColumn({ col }: { col: ReturnType<typeof useBoardStore.getState>['columns'][0] }) {
+  const cards = useBoardStore((s) => s.cards.filter((c) => c.col === col.id))
+  const openAddCard = useBoardStore((s) => s.openAddCard)
+  const { setNodeRef, isOver } = useDroppable({ id: col.id, data: { columnId: col.id } })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        width: '260px',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+        minHeight: 0,
+        background: isOver ? 'rgba(47,128,237,.06)' : 'transparent',
+        borderRadius: 'var(--radius-md)',
+        transition: 'background .15s',
+        padding: '0 4px',
+      }}
+    >
+      <ColumnHeader col={col} />
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
+        <AddCardInline columnId={col.id} />
+        {cards.map((card) => (
+          <KanbanCardItem key={card.id} card={card} />
+        ))}
+      </div>
+      <button
+        onClick={() => openAddCard(col.id)}
+        style={{
+          marginTop: '6px',
+          padding: '7px 10px',
+          border: '1px dashed var(--color-border)',
+          borderRadius: '14px',
+          color: 'var(--color-text-tertiary)',
+          fontSize: '12px',
+          cursor: 'pointer',
+          transition: 'all .15s',
+          textAlign: 'left',
+          background: 'rgba(255,255,255,.32)',
+          fontFamily: 'var(--font-body)',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.62)'; e.currentTarget.style.borderColor = 'var(--color-border-subtle)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.32)'; e.currentTarget.style.borderColor = 'var(--color-border)' }}
+      >
+        + Adicionar tarefa
+      </button>
+    </div>
+  )
+}
 
 export function BoardView() {
-  const cards = KANBAN_CARDS
+  const columns = useBoardStore((s) => s.columns)
+  const cards = useBoardStore((s) => s.cards)
+  const moveCard = useBoardStore((s) => s.moveCard)
+  const addColumn = useBoardStore((s) => s.addColumn)
+  const editingCardId = useBoardStore((s) => s.editingCardId)
   const [isLoading] = React.useState(false)
+  const [newColName, setNewColName] = React.useState('')
+  const [showAddCol, setShowAddCol] = React.useState(false)
+  const [activeId, setActiveId] = React.useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
+
+  const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0, height: '100%' }}>
@@ -152,72 +239,141 @@ export function BoardView() {
             </button>
           ))}
         </div>
-        <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 18px', display: 'flex', gap: '14px' }}>
-          {isLoading ? (
-            <>
-              <div style={{ width: '236px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <Skeleton height={24} />
-                <Skeleton height={80} count={3} />
-              </div>
-              <div style={{ width: '236px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <Skeleton height={24} />
-                <Skeleton height={80} count={3} />
-              </div>
-            </>
-          ) : cards.length === 0 ? (
-            <EmptyState
-              icon="📋"
-              title="Nenhuma tarefa"
-              description="Este board está vazio. Adicione uma coluna e comece a organizar."
-            />
-          ) : (
-            KANBAN_COLUMNS.map((col) => {
-              const colCards = cards.filter((c) => c.col === col.id)
-              return (
-                <div key={col.id} style={{ width: '236px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0, minHeight: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 10px 10px' }}>
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: col.color, opacity: 0.72, boxShadow: '0 0 0 4px rgba(255,255,255,.44)' }} />
-                    <span style={{ fontSize: '12px', fontWeight: 650, color: 'var(--color-text-secondary)', flex: 1 }}>{col.name}</span>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        color: 'var(--color-text-tertiary)',
-                        background: 'var(--color-surface-elevated)',
-                        padding: '1px 6px',
-                        borderRadius: '8px',
-                        fontFamily: 'var(--font-mono)',
-                      }}
-                    >
-                      {colCards.length}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {colCards.map((card) => (
-                      <KanbanCardItem key={card.id} card={card} />
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: '6px',
-                      padding: '7px 10px',
-                      border: '1px dashed var(--color-border)',
-                      borderRadius: '14px',
-                      color: 'var(--color-text-tertiary)',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      transition: 'all .15s',
-                      textAlign: 'left',
-                      background: 'rgba(255,255,255,.32)',
-                    }}
-                  >
-                    + Adicionar tarefa
-                  </div>
+        <DndContext
+          sensors={sensors}
+          onDragStart={({ active }) => setActiveId(active.id as string)}
+          onDragEnd={({ active, over }) => {
+            setActiveId(null)
+            if (!over) return
+            const overId = over.id as string
+            const card = cards.find((c) => c.id === active.id)
+            if (!card) return
+            // Drop on column
+            const targetCol = columns.find((c) => c.id === overId)
+            if (targetCol) {
+              moveCard(card.id, targetCol.id)
+              return
+            }
+            // Drop on another card -> move to same column
+            const overCard = cards.find((c) => c.id === overId)
+            if (overCard && overCard.col !== card.col) {
+              moveCard(card.id, overCard.col)
+            }
+          }}
+        >
+          <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 18px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+            {isLoading ? (
+              <>
+                <div style={{ width: '236px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <Skeleton height={24} />
+                  <Skeleton height={80} count={3} />
                 </div>
-              )
-            })
-          )}
-        </div>
+                <div style={{ width: '236px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <Skeleton height={24} />
+                  <Skeleton height={80} count={3} />
+                </div>
+              </>
+            ) : columns.length === 0 ? (
+              <EmptyState
+                icon="📋"
+                title="Nenhuma coluna"
+                description="Adicione uma coluna para começar a organizar."
+              />
+            ) : (
+              <>
+                {columns.map((col) => (
+                  <KanbanColumn key={col.id} col={col} />
+                ))}
+                <div style={{ width: '260px', flexShrink: 0 }}>
+                  {showAddCol ? (
+                    <div style={{ padding: '8px 10px' }}>
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Nome da coluna..."
+                        value={newColName}
+                        onChange={(e) => setNewColName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const name = newColName.trim()
+                            if (name) addColumn(name)
+                            setNewColName('')
+                            setShowAddCol(false)
+                          }
+                          if (e.key === 'Escape') {
+                            setNewColName('')
+                            setShowAddCol(false)
+                          }
+                        }}
+                        onBlur={() => {
+                          const name = newColName.trim()
+                          if (name) addColumn(name)
+                          setNewColName('')
+                          setShowAddCol(false)
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--color-accent-border)',
+                          background: 'rgba(255,255,255,.82)',
+                          fontSize: '13px',
+                          fontFamily: 'var(--font-body)',
+                          color: 'var(--color-text-primary)',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowAddCol(true)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px dashed var(--color-border)',
+                        borderRadius: '14px',
+                        color: 'var(--color-text-tertiary)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        background: 'rgba(255,255,255,.32)',
+                        fontFamily: 'var(--font-body)',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.62)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.32)' }}
+                    >
+                      + Nova coluna
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          <DragOverlay dropAnimation={null}>
+            {activeCard ? (
+              <div
+                style={{
+                  background: 'var(--color-surface-strong)',
+                  border: '1px solid var(--color-accent-border)',
+                  borderRadius: '14px',
+                  padding: '12px 13px',
+                  boxShadow: 'var(--shadow-soft)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                  cursor: 'grabbing',
+                  opacity: 0.95,
+                  transform: 'rotate(2deg)',
+                }}
+              >
+                {activeCard.title}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
+      {editingCardId && <CardModal />}
     </div>
   )
 }
+
+export default BoardView
