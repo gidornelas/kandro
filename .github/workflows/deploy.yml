@@ -39,6 +39,7 @@ jobs:
   deploy-railway:
     name: Deploy to Railway
     needs: build-and-push
+    if: ${{ secrets.RAILWAY_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,7 @@ jobs:
   deploy-web:
     name: Deploy Web (Vercel)
     needs: build-and-push
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,29 +63,12 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Sync Vercel Environment Variables
-        working-directory: nexus
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
-        run: |
-          if [ -z "$VITE_API_URL" ]; then
-            echo "VITE_API_URL secret not set"
-            exit 1
-          fi
-          if [ -z "$VITE_WS_URL" ]; then
-            VITE_WS_URL="$VITE_API_URL"
-          fi
-          vercel env rm VITE_API_URL production --token "$VERCEL_TOKEN" --yes || true
-          vercel env rm VITE_WS_URL production --token "$VERCEL_TOKEN" --yes || true
-          echo "$VITE_API_URL" | vercel env add VITE_API_URL production --token "$VERCEL_TOKEN" --yes
-          echo "$VITE_WS_URL" | vercel env add VITE_WS_URL production --token "$VERCEL_TOKEN" --yes
-
       - name: Deploy to Vercel
         working-directory: nexus
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel deploy --prod --yes --token "$VERCEL_TOKEN"
