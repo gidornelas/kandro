@@ -1,12 +1,17 @@
 import { apiClient } from '../../core/api/client'
 import type { Team } from '../../shared/types/domain'
 
-export function list() {
-  return apiClient.get<Team[]>('/api/teams')
+export interface TeamResponse extends Omit<Team, 'memberIds' | 'permissions'> {
+  members?: { userId: string; user?: { id: string } }[]
+  permissions: Team['permissions']
 }
 
-export function create(data: { name: string; color: string }) {
-  return apiClient.post<Team>('/api/teams', data)
+export function list(workspaceId: string) {
+  return apiClient.get<TeamResponse[]>(`/api/workspaces/${workspaceId}/teams`)
+}
+
+export function create(workspaceId: string, data: { name: string; color: string }) {
+  return apiClient.post<TeamResponse>(`/api/workspaces/${workspaceId}/teams`, data)
 }
 
 export function update(teamId: string, data: { name?: string; color?: string }) {

@@ -1,18 +1,21 @@
 import { useUIStore } from '../modules/ui/store'
-import { CHANNELS } from '../shared/mocks'
+import { useAppDataStore } from '../modules/app-data/store'
 
 export function Header() {
   const mainMode = useUIStore((s) => s.mainMode)
   const activeChannelId = useUIStore((s) => s.activeChannelId)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const channels = useAppDataStore((s) => s.channels)
+  const projects = useAppDataStore((s) => s.projects)
 
-  const channel = CHANNELS.find((c) =>
+  const channel = channels.find((c) =>
     mainMode === 'project'
       ? c.id === activeProjectId
       : mainMode === 'channel' || mainMode === 'voice'
         ? c.id === activeChannelId
         : false
   )
+  const project = projects.find((item) => item.id === activeProjectId)
 
   const title = channel?.name || (mainMode === 'dm' ? 'Mensagens Diretas' : 'NEXUS')
   const icon = channel?.icon || (mainMode === 'dm' ? '✉' : '#')
@@ -58,7 +61,7 @@ export function Header() {
               letterSpacing: '.03em',
             }}
           >
-            Em andamento
+            {project?.status ?? 'Em andamento'}
           </span>
         )}
       </div>

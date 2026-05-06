@@ -1,14 +1,14 @@
 import React from 'react'
 import { useUIStore } from '../../ui/store'
 import { useMessagesStore } from '../../messages/store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🤔', '👀']
 
 const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[]; attachment?: { name: string; size: string; icon: string }; taskCard?: { label: string; title: string; due: string; priority: string; priorityColor: string } } }) {
-  const user = USERS[msg.userId]
+  const user = useAppDataStore((s) => s.users[msg.userId])
   const addReaction = useMessagesStore((s) => s.addReaction)
   const [showReactions, setShowReactions] = React.useState(false)
 
@@ -142,8 +142,9 @@ export function ChatView() {
   const activeChannelId = useUIStore((s) => s.activeChannelId)
   const allMessages = useMessagesStore((s) => s.messages)
   const sendMessage = useMessagesStore((s) => s.sendMessage)
+  const loadChannel = useMessagesStore((s) => s.loadChannel)
+  const isLoading = useMessagesStore((s) => s.isLoading)
   const [input, setInput] = React.useState('')
-  const [isLoading] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const messages = React.useMemo(() => {
@@ -154,6 +155,11 @@ export function ChatView() {
   const msgCount = messages.length
 
   React.useEffect(() => {
+    if (!activeChannelId) return
+    void loadChannel(activeChannelId)
+  }, [activeChannelId, loadChannel])
+
+  React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
@@ -162,7 +168,7 @@ export function ChatView() {
   const handleSend = () => {
     const text = input.trim()
     if (!text || !activeChannelId) return
-    sendMessage(activeChannelId, text)
+    void sendMessage(activeChannelId, text)
     setInput('')
   }
 

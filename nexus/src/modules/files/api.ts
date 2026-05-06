@@ -1,5 +1,11 @@
 import { apiClient } from '../../core/api/client'
 
+export interface PaginatedFiles {
+  data: FolderNode[]
+  nextCursor: string | null
+  hasMore: boolean
+}
+
 export interface FolderNode {
   id: string
   name: string
@@ -14,13 +20,22 @@ export interface FolderNode {
   encrypted: boolean
 }
 
-export function list(workspaceId: string) {
-  return apiClient.get<FolderNode[]>(`/api/workspaces/${workspaceId}/files`)
+export function list(workspaceId: string, parentId?: string | null) {
+  const params = new URLSearchParams()
+  if (parentId) params.set('parentId', parentId)
+  const qs = params.toString()
+  return apiClient.get<PaginatedFiles>(`/api/workspaces/${workspaceId}/files${qs ? `?${qs}` : ''}`)
 }
 
 export function upload(workspaceId: string, parentId: string | null, file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  if (parentId) formData.append('parentId', parentId)
-  return apiClient.post<{ id: string; url: string }>(`/api/workspaces/${workspaceId}/files`, formData)
+  const params = new URLSearchParams()
+  if (parentId) params.set('parentId', parentId)
+  const qs = params.toString()
+  return apiClient.post<FolderNode>(`/api/workspaces/${workspaceId}/files/upload${qs ? `?${qs}` : ''}`, formData)
+}
+
+export function remove(fileId: string) {
+  return apiClient.delete<void>(`/api/files/${fileId}`)
 }

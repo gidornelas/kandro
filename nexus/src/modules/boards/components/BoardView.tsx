@@ -10,7 +10,8 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { useBoardStore } from '../store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
+import { useUIStore } from '../../ui/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { CardModal } from './CardModal'
@@ -19,6 +20,7 @@ import { ColumnHeader } from './ColumnHeader'
 
 function KanbanCardItem({ card }: { card: { id: string; title: string; labels: string[]; priority: string; priorityColor: string; assignees: string[]; dueType: string; progress: number; threadCount: number } }) {
   const openCardModal = useBoardStore((s) => s.openCardModal)
+  const users = useAppDataStore((s) => s.users)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id })
 
   const isOverdue = card.dueType === 'overdue'
@@ -73,7 +75,7 @@ function KanbanCardItem({ card }: { card: { id: string; title: string; labels: s
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <div style={{ display: 'flex' }}>
           {card.assignees.map((uid: string, i: number) => {
-            const u = USERS[uid]
+            const u = users[uid]
             return (
               <div
                 key={uid}
@@ -195,12 +197,14 @@ const KanbanColumn = React.memo(function KanbanColumn({ colId }: { colId: string
 })
 
 export function BoardView() {
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
   const columns = useBoardStore((s) => s.columns)
   const cards = useBoardStore((s) => s.cards)
   const moveCard = useBoardStore((s) => s.moveCard)
   const addColumn = useBoardStore((s) => s.addColumn)
+  const loadBoard = useBoardStore((s) => s.loadBoard)
   const editingCardId = useBoardStore((s) => s.editingCardId)
-  const [isLoading] = React.useState(false)
+  const isLoading = useBoardStore((s) => s.isLoading)
   const [newColName, setNewColName] = React.useState('')
   const [showAddCol, setShowAddCol] = React.useState(false)
   const [activeId, setActiveId] = React.useState<string | null>(null)
@@ -214,6 +218,11 @@ export function BoardView() {
     if (!activeId) return null
     return cards.find((c) => c.id === activeId) ?? null
   }, [activeId, cards])
+
+  React.useEffect(() => {
+    if (!activeProjectId) return
+    void loadBoard(activeProjectId)
+  }, [activeProjectId, loadBoard])
 
   const handleDragStart = React.useCallback((event: { active: { id: string | number } }) => {
     setActiveId(String(event.active.id))
@@ -311,7 +320,7 @@ export function BoardView() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             const name = newColName.trim()
-                            if (name) addColumn(name)
+                            if (name && activeProjectId) void addColumn(activeProjectId, name)
                             setNewColName('')
                             setShowAddCol(false)
                           }
@@ -322,7 +331,7 @@ export function BoardView() {
                         }}
                         onBlur={() => {
                           const name = newColName.trim()
-                          if (name) addColumn(name)
+                          if (name && activeProjectId) void addColumn(activeProjectId, name)
                           setNewColName('')
                           setShowAddCol(false)
                         }}

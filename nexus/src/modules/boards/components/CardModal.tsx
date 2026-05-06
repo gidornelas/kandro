@@ -1,7 +1,7 @@
 import React from 'react'
 import { Modal } from '../../../design-system/Modal'
 import { useBoardStore } from '../store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
 import { RichTextEditor } from './RichTextEditor'
 
 const PRIORITIES = [
@@ -27,6 +27,7 @@ export function CardModal() {
   const updateCard = useBoardStore((s) => s.updateCard)
   const deleteCard = useBoardStore((s) => s.deleteCard)
   const close = useBoardStore((s) => s.closeCardModal)
+  const users = useAppDataStore((s) => s.users)
 
   const [title, setTitle] = React.useState(() => card?.title ?? '')
   const [priority, setPriority] = React.useState(() => card?.priority ?? 'Normal')
@@ -89,7 +90,7 @@ export function CardModal() {
     const total = subtasks.length
     const computedProgress = total > 0 ? Math.round((doneCount / total) * 100) : progress
 
-    updateCard(card.id, {
+    void updateCard(card.id, {
       title,
       priority,
       priorityColor,
@@ -298,7 +299,7 @@ export function CardModal() {
               {cardComments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
                   {cardComments.map((c) => {
-                    const commentUser = USERS[c.userId]
+                    const commentUser = users[c.userId]
                     const isMe = c.userId === 'me'
                     return (
                       <div
@@ -457,7 +458,7 @@ export function CardModal() {
                 💾 Salvar
               </button>
               <button
-                onClick={() => { if (confirm('Excluir esta tarefa?')) deleteCard(card.id) }}
+                onClick={() => { if (confirm('Excluir esta tarefa?')) void deleteCard(card.id) }}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -482,7 +483,7 @@ export function CardModal() {
               Responsáveis
             </span>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {Object.values(USERS).map((u) => {
+              {Object.values(users).map((u) => {
                 const selected = assignees.includes(u.id)
                 return (
                   <button

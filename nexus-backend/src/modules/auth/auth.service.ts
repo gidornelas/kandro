@@ -31,7 +31,16 @@ export function createAuthService(prisma: PrismaClient) {
       },
     });
 
-    return { id: user.id, email: user.email, name: user.name };
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      initials: user.initials,
+      color: user.color,
+      role: user.role,
+      status: user.status,
+    };
   }
 
   async function login(input: LoginInput) {
@@ -45,6 +54,9 @@ export function createAuthService(prisma: PrismaClient) {
       id: user.id,
       email: user.email,
       name: user.name,
+      image: user.image,
+      initials: user.initials,
+      color: user.color,
       role: user.role,
       status: user.status,
     };

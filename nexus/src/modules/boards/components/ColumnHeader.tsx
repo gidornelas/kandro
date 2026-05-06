@@ -19,10 +19,10 @@ export function ColumnHeader({ col }: { col: { id: string; name: string; color: 
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') updateColumn(col.id, name.trim() || col.name)
+            if (e.key === 'Enter') void updateColumn(col.id, name.trim() || col.name)
             if (e.key === 'Escape') closeEditColumn()
           }}
-          onBlur={() => updateColumn(col.id, name.trim() || col.name)}
+          onBlur={() => void updateColumn(col.id, name.trim() || col.name)}
           style={{
             flex: 1,
             padding: '4px 8px',
@@ -50,7 +50,7 @@ export function ColumnHeader({ col }: { col: { id: string; name: string; color: 
       <button
         onClick={(e) => {
           e.stopPropagation()
-          if (confirm(`Excluir coluna "${col.name}" e todas as tarefas?`)) deleteColumn(col.id)
+          if (confirm(`Excluir coluna "${col.name}" e todas as tarefas?`)) void deleteColumn(col.id)
         }}
         style={{
           width: '18px',

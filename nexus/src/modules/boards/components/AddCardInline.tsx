@@ -12,7 +12,7 @@ export function AddCardInline({ columnId }: { columnId: string }) {
 
   const submit = () => {
     const t = title.trim()
-    if (t) addCard(columnId, t)
+    if (t) void addCard(columnId, t)
     setTitle('')
   }
 

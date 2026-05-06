@@ -1,13 +1,15 @@
 import React from 'react'
 import { useUIStore } from '../../ui/store'
 import { useDmStore } from '../../dms/store'
-import { DMS, USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
+import { useAuthStore } from '../../auth/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 
 const DmMessageItem = React.memo(function DmMessageItem({ msg }: { msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[] } }) {
-  const msgUser = USERS[msg.userId]
-  const isMe = msg.userId === 'me'
+  const msgUser = useAppDataStore((s) => s.users[msg.userId])
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  const isMe = msg.userId === currentUserId || msg.userId === 'me'
 
   return (
     <div style={{ marginBottom: '14px', display: 'flex', gap: '8px', alignItems: 'flex-start', flexDirection: isMe ? 'row-reverse' : 'row' }}>
@@ -74,12 +76,15 @@ const DmMessageItem = React.memo(function DmMessageItem({ msg }: { msg: { id: st
 
 export function DmView() {
   const activeDmId = useUIStore((s) => s.activeDmId)
-  const dm = DMS.find((d) => d.id === activeDmId)
-  const user = dm ? USERS[dm.userId] : null
+  const dms = useAppDataStore((s) => s.dms)
+  const users = useAppDataStore((s) => s.users)
+  const dm = dms.find((d) => d.id === activeDmId)
+  const user = dm ? users[dm.userId] : null
   const conversations = useDmStore((s) => s.conversations)
   const sendDm = useDmStore((s) => s.sendDm)
+  const loadMessages = useDmStore((s) => s.loadMessages)
+  const isLoading = useDmStore((s) => s.isLoading)
   const [input, setInput] = React.useState('')
-  const [isLoading] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const messages = React.useMemo(() => {
@@ -90,6 +95,11 @@ export function DmView() {
   const msgCount = messages.length
 
   React.useEffect(() => {
+    if (!activeDmId) return
+    void loadMessages(activeDmId)
+  }, [activeDmId, loadMessages])
+
+  React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
@@ -98,7 +108,7 @@ export function DmView() {
   const handleSend = () => {
     const text = input.trim()
     if (!text || !activeDmId) return
-    sendDm(activeDmId, text)
+    void sendDm(activeDmId, text)
     setInput('')
   }
 

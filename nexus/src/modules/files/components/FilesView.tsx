@@ -85,20 +85,21 @@ export function FilesView() {
   const items = useFilesStore((s) => s.items)
   const uploadFile = useFilesStore((s) => s.uploadFile)
   const deleteFile = useFilesStore((s) => s.deleteFile)
-  const [isLoading] = React.useState(false)
+  const loadFiles = useFilesStore((s) => s.loadFiles)
+  const isLoading = useFilesStore((s) => s.isLoading)
   const [uploading, setUploading] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  React.useEffect(() => {
+    void loadFiles()
+  }, [loadFiles])
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     setUploading(true)
-    Array.from(files).forEach((file) => {
-      const icon = file.name.endsWith('.fig') ? '🎨' : file.name.endsWith('.pdf') ? '📄' : file.name.endsWith('.png') || file.name.endsWith('.jpg') ? '🖼' : '📎'
-      const size = file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`
-      uploadFile({ name: file.name, size, icon })
-    })
+    await Promise.all(Array.from(files).map((file) => uploadFile(file)))
     setUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -152,7 +153,7 @@ export function FilesView() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {items.map((file) => (
-              <FileItem key={file.id} file={file} onDelete={() => deleteFile(file.id)} />
+              <FileItem key={file.id} file={file} onDelete={() => void deleteFile(file.id)} />
             ))}
           </div>
         )}

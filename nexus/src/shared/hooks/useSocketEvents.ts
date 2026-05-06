@@ -6,6 +6,8 @@ import { usePresenceStore } from '../../modules/presence/store'
 import { useVoiceStore } from '../../modules/voice/store'
 import { queryClient } from '../../core/queryClient'
 import type { MessageResponse, MessageReaction } from '../../modules/messages/api'
+import { useMessagesStore } from '../../modules/messages/store'
+import { useBoardStore } from '../../modules/boards/store'
 
 function transformMessage(msg: MessageResponse, currentUserId: string) {
   return {
@@ -69,20 +71,32 @@ export function useSocketEvents() {
     // ── Chat handlers ──
     const handleChatMessage = (msg: MessageResponse) => {
       const transformed = transformMessage(msg, currentUserId)
-      queryClient.setQueryData(['messages', msg.channelId], (old: typeof transformed[] | null) => {
+      const messages = useMessagesStore.getState().messages
+      if (!messages.some((message) => message.id === transformed.id)) {
+        useMessagesStore.setState({ messages: [...messages, transformed] })
+      }
+      queryClient.setQueryData(['messages', msg.channelId], (old: Array<typeof transformed> | null) => {
         return old ? [...old, transformed] : [transformed]
       })
     }
 
     const handleChatUpdated = (msg: MessageResponse) => {
       const transformed = transformMessage(msg, currentUserId)
-      queryClient.setQueryData(['messages', msg.channelId], (old: typeof transformed[] | null) => {
+      useMessagesStore.setState({
+        messages: useMessagesStore.getState().messages.map((message) =>
+          message.id === msg.id ? transformed : message
+        ),
+      })
+      queryClient.setQueryData(['messages', msg.channelId], (old: Array<typeof transformed> | null) => {
         if (!old) return old
         return old.map((m) => (m.id === msg.id ? transformed : m))
       })
     }
 
     const handleChatDeleted = (data: { messageId: string; channelId?: string }) => {
+      useMessagesStore.setState({
+        messages: useMessagesStore.getState().messages.filter((message) => message.id !== data.messageId),
+      })
       if (data.channelId) {
         queryClient.setQueryData(['messages', data.channelId], (old: { id: string }[] | null) => {
           if (!old) return old
@@ -94,6 +108,11 @@ export function useSocketEvents() {
 
     const handleChatReactions = (data: { messageId: string; channelId?: string; reactions: MessageReaction[] }) => {
       const newReactions = transformReactions(data.reactions, currentUserId)
+      useMessagesStore.setState({
+        messages: useMessagesStore.getState().messages.map((message) =>
+          message.id === data.messageId ? { ...message, reactions: newReactions } : message
+        ),
+      })
       if (data.channelId) {
         queryClient.setQueryData(['messages', data.channelId], (old: { id: string; reactions: typeof newReactions }[] | null) => {
           if (!old) return old
@@ -106,6 +125,7 @@ export function useSocketEvents() {
     // ── Board handlers ──
     const invalidateBoard = () => {
       if (activeProjectId) {
+        void useBoardStore.getState().loadBoard(activeProjectId)
         queryClient.invalidateQueries({ queryKey: ['board', activeProjectId] })
       }
     }

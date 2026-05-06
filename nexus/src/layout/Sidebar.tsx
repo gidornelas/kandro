@@ -2,7 +2,7 @@ import React from 'react'
 import { useUIStore } from '../modules/ui/store'
 import { useAuthStore } from '../modules/auth/store'
 import { useVoiceStore } from '../modules/voice/store'
-import { CHANNELS, DMS, USERS } from '../shared/mocks'
+import { useAppDataStore } from '../modules/app-data/store'
 
 function StatusDot({ status }: { status?: string }) {
   const color = status === 'online' ? 'var(--color-success)' : status === 'busy' ? 'var(--color-danger)' : status === 'away' ? 'var(--color-warning)' : 'var(--color-text-tertiary)'
@@ -149,10 +149,16 @@ export function Sidebar({ width }: { width: number }) {
   const openProject = useUIStore((s) => s.openProject)
   const openVoice = useUIStore((s) => s.openVoice)
   const joinRoom = useVoiceStore((s) => s.joinRoom)
+  const channels = useAppDataStore((s) => s.channels)
+  const dms = useAppDataStore((s) => s.dms)
+  const users = useAppDataStore((s) => s.users)
+  const workspaces = useAppDataStore((s) => s.workspaces)
+  const activeWorkspaceId = useAppDataStore((s) => s.activeWorkspaceId)
 
-  const projectChannels = CHANNELS.filter((c) => c.type === 'board')
-  const textChannels = CHANNELS.filter((c) => c.type === 'text')
-  const voiceChannels = CHANNELS.filter((c) => c.type === 'voice')
+  const workspace = workspaces.find((item) => item.id === activeWorkspaceId)
+  const projectChannels = channels.filter((c) => c.type === 'board')
+  const textChannels = channels.filter((c) => c.type === 'text')
+  const voiceChannels = channels.filter((c) => c.type === 'voice')
 
   return (
     <div
@@ -197,9 +203,9 @@ export function Sidebar({ width }: { width: number }) {
             flexShrink: 0,
           }}
         >
-          A
+          {workspace?.initials ?? 'N'}
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 600, flex: 1 }}>Acme Design Co.</span>
+        <span style={{ fontSize: '13px', fontWeight: 600, flex: 1 }}>{workspace?.name ?? 'NEXUS'}</span>
         <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>⌄</span>
       </div>
 
@@ -246,8 +252,8 @@ export function Sidebar({ width }: { width: number }) {
         </Section>
 
         <Section id="dm" label="Diretos">
-          {DMS.map((dm) => {
-            const u = USERS[dm.userId]
+          {dms.map((dm) => {
+            const u = users[dm.userId]
             return (
               <SidebarItem
                 key={dm.id}
