@@ -79,7 +79,7 @@ export function VoiceRoom() {
   const [isLoading] = React.useState(false)
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', height: '100%' }}>
       {/* Header */}
       <div
         style={{

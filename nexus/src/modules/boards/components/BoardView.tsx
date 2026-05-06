@@ -119,7 +119,7 @@ export function BoardView() {
   const [isLoading] = React.useState(false)
 
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0, height: '100%' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <div
           style={{

@@ -34,7 +34,7 @@ export function MainArea() {
       }}
     >
       <Header />
-      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <ErrorBoundary>
           <Suspense fallback={<ViewLoader />}>
             {mainMode === 'project' && <ProjectView />}
