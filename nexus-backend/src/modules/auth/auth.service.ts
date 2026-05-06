@@ -106,15 +106,15 @@ export function createAuthService(prisma: PrismaClient) {
   }
 
   function generateTokens(
-    jwtSign: (payload: { sub: string; userId: string; email: string; name: string }) => string,
-    jwtSignRefresh: (payload: { sub: string; userId: string; email: string; name: string }) => string,
+    jwtSign: (payload: { sub: string; userId: string; email: string; name: string; jti?: string }) => string,
+    jwtSignRefresh: (payload: { sub: string; userId: string; email: string; name: string; jti?: string }) => string,
     user: { id: string; email: string; name: string }
   ) {
     const payload = { sub: user.id, userId: user.id, email: user.email, name: user.name };
 
     return {
-      accessToken: jwtSign(payload),
-      refreshToken: jwtSignRefresh(payload),
+      accessToken: jwtSign({ ...payload, jti: uuid() }),
+      refreshToken: jwtSignRefresh({ ...payload, jti: uuid() }),
     };
   }
 

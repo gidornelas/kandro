@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import * as boardsApi from '../../api/boards'
+import { listMockBoardCards, listMockBoardColumns } from '../../data/mock-api'
 import { transformBoardCard } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
 import type { KanbanCard } from '../../types'
 
 export function useBoardData(channelId: string | null) {
@@ -8,9 +10,10 @@ export function useBoardData(channelId: string | null) {
     queryKey: ['board', channelId],
     queryFn: async () => {
       if (!channelId) return null
+      const mockMode = useAuthStore.getState().isMockMode
       const [columns, cardsData] = await Promise.all([
-        boardsApi.listColumns(channelId),
-        boardsApi.listCards(channelId),
+        mockMode ? Promise.resolve(listMockBoardColumns(channelId)) : boardsApi.listColumns(channelId),
+        mockMode ? Promise.resolve(listMockBoardCards(channelId)) : boardsApi.listCards(channelId),
       ])
       const cols = cardsData.length > 0
         ? cardsData.map(c => ({ id: c.id, name: c.name, color: c.color, isTerminal: c.isTerminal }))

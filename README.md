@@ -25,10 +25,13 @@ cd nexus-backend
 docker compose up -d
 bun install
 cp .env.example .env
+cp .env.example .env.local
 bun run generate
 bun run migrate:dev --name init
 bun run dev
 ```
+
+Os containers locais expõem PostgreSQL em `localhost:5433` e Redis em `localhost:6380` por padrão para evitar conflito com serviços já rodando na máquina.
 
 ## Environment Files
 
@@ -37,7 +40,7 @@ bun run dev
   - `nexus-backend/.env.example`
   - `nexus-backend/.env.railway.example`
 
-Do not commit real `.env` files.
+Use `nexus-backend/.env.local` for real local secrets. Do not commit real `.env` or `.env.local` files.
 
 ## Deploy
 

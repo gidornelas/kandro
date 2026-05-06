@@ -148,6 +148,23 @@ describe("auth service", () => {
   });
 
   describe("refresh token", () => {
+    it("generates unique access and refresh tokens for the same user", () => {
+      const first = authService.generateTokens(
+        (payload) => JSON.stringify(payload),
+        (payload) => JSON.stringify(payload),
+        { id: "user-1", email: "test@example.com", name: "Test" }
+      );
+
+      const second = authService.generateTokens(
+        (payload) => JSON.stringify(payload),
+        (payload) => JSON.stringify(payload),
+        { id: "user-1", email: "test@example.com", name: "Test" }
+      );
+
+      expect(first.accessToken).not.toBe(second.accessToken);
+      expect(first.refreshToken).not.toBe(second.refreshToken);
+    });
+
     it("rotates refresh token atomically", async () => {
       const user = {
         id: "user-1",

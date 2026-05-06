@@ -23,7 +23,7 @@ WORKDIR /app
 
 # Install production dependencies only
 COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile
 
 # Copy built artifacts
 COPY --from=builder /app/dist ./dist

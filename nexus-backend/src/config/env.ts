@@ -1,5 +1,18 @@
+import { existsSync } from "node:fs";
 import { z } from "zod";
 import { config } from "./constants.js";
+
+const loadEnvFile = Reflect.get(process, "loadEnvFile");
+
+if (typeof loadEnvFile === "function") {
+  if (existsSync(".env")) {
+    loadEnvFile.call(process, ".env");
+  }
+
+  if (existsSync(".env.local")) {
+    loadEnvFile.call(process, ".env.local");
+  }
+}
 
 const envSchema = z.object({
   // Database

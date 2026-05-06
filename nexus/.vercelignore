@@ -1,0 +1,12 @@
+node_modules
+dist
+.vercel
+src-tauri/target
+src-tauri/gen
+coverage
+playwright-report
+test-results
+frontend-dev.log
+frontend-dev.err.log
+*.log
+*.tsbuildinfo

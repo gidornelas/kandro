@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import * as filesApi from '../../api/files'
+import { listMockFiles } from '../../data/mock-api'
+import { useAuthStore } from '../../stores/authStore'
 import type { FolderItem } from '../../types'
 
 function toFolderItem(n: filesApi.FileNodeResponse): FolderItem {
@@ -23,7 +25,9 @@ export function useFiles(workspaceId: string | null, parentId?: string | null) {
     queryKey: ['files', workspaceId, parentId ?? 'root'],
     queryFn: async () => {
       if (!workspaceId) return null
-      const data = await filesApi.listFiles(workspaceId, parentId ?? undefined)
+      const data = useAuthStore.getState().isMockMode
+        ? listMockFiles(parentId)
+        : await filesApi.listFiles(workspaceId, parentId ?? undefined)
       return data.map(toFolderItem)
     },
     enabled: !!workspaceId,

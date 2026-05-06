@@ -5,17 +5,31 @@
 
 import { API_URL } from './env'
 
+let backendReachable: boolean | null = null
+let backendCheck: Promise<boolean> | null = null
+
 /** Check if backend is reachable */
 export async function checkBackendHealth(): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_URL}/api/auth/me`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(3000),
-    })
-    return res.status !== 404 || res.ok
-  } catch {
-    return false
-  }
+  if (backendReachable !== null) return backendReachable
+  if (backendCheck) return backendCheck
+
+  backendCheck = (async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000),
+      })
+      backendReachable = res.ok
+      return backendReachable
+    } catch {
+      backendReachable = false
+      return false
+    } finally {
+      backendCheck = null
+    }
+  })()
+
+  return backendCheck
 }
 
 /** Whether mock auth is explicitly enabled via env */
@@ -25,17 +39,14 @@ export const isMockAuthEnabled = import.meta.env.VITE_MOCK_AUTH === 'true'
 export const isDevMode = import.meta.env.DEV
 
 /** Combined flag: mock auth active when enabled OR when backend is unreachable in dev */
-let _backendReachable: boolean | null = null
-
 export async function isMockAuthActive(): Promise<boolean> {
   if (isMockAuthEnabled) return true
   if (!isDevMode) return false
-  if (_backendReachable !== null) return !_backendReachable
-  _backendReachable = await checkBackendHealth()
-  return !_backendReachable
+  return !(await checkBackendHealth())
 }
 
 /** Reset cached health check (useful for retry) */
 export function resetBackendCheck() {
-  _backendReachable = null
+  backendReachable = null
+  backendCheck = null
 }

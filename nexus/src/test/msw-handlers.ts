@@ -51,6 +51,10 @@ const boardCards = [
 ]
 
 export const handlers = [
+  http.get(`${API_URL}/api/health`, () => {
+    return HttpResponse.json({ status: 'ok' })
+  }),
+
   // Auth
   http.post(`${API_URL}/api/auth/login`, () => {
     return HttpResponse.json({

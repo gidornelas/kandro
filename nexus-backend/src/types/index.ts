@@ -7,6 +7,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   name: string;
+  jti?: string;
 }
 
 export interface AuthenticatedRequest extends FastifyRequest {

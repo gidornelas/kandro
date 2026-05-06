@@ -24,14 +24,19 @@ function ModalFallback() {
 export default function App() {
   const { activeModal } = useUIStore()
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const isMockMode = useAuthStore(s => s.isMockMode)
   const connectSocket = useSocketStore(s => s.connect)
+  const disconnectSocket = useSocketStore(s => s.disconnect)
   useSocketEvents()
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isMockMode) {
       connectSocket()
+      return
     }
-  }, [isAuthenticated, connectSocket])
+
+    disconnectSocket()
+  }, [connectSocket, disconnectSocket, isAuthenticated, isMockMode])
 
   return (
     <TooltipProvider>
@@ -44,7 +49,9 @@ export default function App() {
             Pular para conteúdo principal
           </a>
           <Sidebar />
-          <MainArea />
+          <main id="main-content" className="flex-1 min-w-0 overflow-hidden">
+            <MainArea />
+          </main>
           <Suspense fallback={<ModalFallback />}>
             {activeModal === 'taskDetail' && <TaskModal />}
             <SettingsModal />

@@ -22,7 +22,9 @@ bun install
 
 # 3. Configurar variáveis de ambiente
 cp .env.example .env
+cp .env.example .env.local
 # Edite .env conforme necessário (pelo menos DATABASE_URL, JWT_SECRET)
+# Coloque segredos reais em .env.local para manter .env como template seguro
 
 # 4. Rodar migrations e seed
 bun run migrate:dev --name init
@@ -35,12 +37,14 @@ bun run dev
 Servidor disponível em `http://localhost:3000`
 Documentação Swagger em `http://localhost:3000/docs`
 
+Os containers locais usam `localhost:5433` para PostgreSQL e `localhost:6380` para Redis por padrão, evitando conflito com instâncias locais já em uso.
+
 ## Variáveis de Ambiente
 
 | Variável | Descrição | Padrão |
 |---|---|---|
-| `DATABASE_URL` | URL de conexão PostgreSQL | `postgresql://nexus:nexus@localhost:5432/nexus` |
-| `REDIS_URL` | URL do Redis (socket adapter) | `redis://localhost:6379` |
+| `DATABASE_URL` | URL de conexão PostgreSQL | `postgresql://nexus:nexus@localhost:5433/nexus` |
+| `REDIS_URL` | URL do Redis (socket adapter) | `redis://localhost:6380` |
 | `JWT_SECRET` | Chave secreta JWT (min 32 chars) | — |
 | `JWT_ACCESS_TTL` | TTL do access token | `15m` |
 | `JWT_REFRESH_TTL` | TTL do refresh token | `7d` |

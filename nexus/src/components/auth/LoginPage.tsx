@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { checkBackendHealth, isDevMode } from '../../lib/dev-mode'
+import { isDevMode } from '../../lib/dev-mode'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -26,13 +26,6 @@ export function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [backendOffline, setBackendOffline] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    if (isDevMode) {
-      checkBackendHealth().then(ok => setBackendOffline(!ok))
-    }
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +65,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-[var(--base)]">
+    <main id="main-content" className="w-screen h-screen flex items-center justify-center bg-[var(--base)]">
       <div className="w-[380px] p-8 rounded-[var(--r)] bg-[var(--s1)] border border-[var(--b1)]">
         <div className="text-center mb-7">
           <div className="w-11 h-11 rounded-[10px] bg-[var(--acc)] flex items-center justify-center text-lg font-bold text-white mx-auto mb-3">
@@ -87,7 +80,7 @@ export function LoginPage() {
         </div>
 
         {/* Dev mode banner */}
-        {isDevMode && backendOffline && (
+        {isDevMode && (
           <div
             className="mb-4 p-3 rounded-[var(--r-sm)] border text-xs leading-relaxed"
             role="alert"
@@ -103,15 +96,15 @@ export function LoginPage() {
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              Modo Desenvolvimento — Backend indisponível
+              Modo Desenvolvimento
             </div>
-            <p className="text-[var(--t2)]">
-              O backend não está rodando em <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)' }}>localhost:3000</code>.
-              Credenciais de teste serão aceitas automaticamente.
+            <p style={{ color: 'var(--t1)' }}>
+              Se o backend local nao estiver rodando em <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)', color: 'var(--t1)' }}>localhost:3000</code>,
+              o app alterna automaticamente para credenciais simuladas.
             </p>
-            <p className="mt-1.5 text-[var(--t3)]">
-              Use qualquer email/senha para entrar. Para desativar, adicione{' '}
-              <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)' }}>VITE_MOCK_AUTH=false</code> no .env
+            <p className="mt-1.5" style={{ color: 'var(--t1)' }}>
+              Use qualquer email/senha para entrar quando isso acontecer. Para desativar, adicione{' '}
+              <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)', color: 'var(--t1)' }}>VITE_MOCK_AUTH=false</code> no .env
               ou inicie o backend.
             </p>
           </div>
@@ -196,12 +189,13 @@ export function LoginPage() {
               setErrors({})
               setSubmitError('')
             }}
-            className="bg-transparent border-none text-[var(--acc)] text-xs cursor-pointer"
+            className="bg-transparent border-none text-xs cursor-pointer underline underline-offset-2"
+            style={{ color: '#8fb2ff' }}
           >
             {mode === 'login' ? 'Não tem conta? Criar conta' : 'Já tem conta? Fazer login'}
           </button>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,19 +1,25 @@
 /**
  * NEXUS Backend Integration Tests
  *
- * PREREQUISITE: A running PostgreSQL database with connection string
- * set in DATABASE_URL environment variable (or in .env file).
- * These tests use fastify.inject() to test the full HTTP layer
- * against a real database. They do NOT use mocks.
- *
- * Setup:
- *   1. Ensure PostgreSQL is running (e.g., `docker compose up -d`)
- *   2. Run `bun run migrate:dev` to apply schema
- *   3. Run `bun run test` from nexus-backend/
+ * Uses in-memory mocks for Prisma and Redis so no external services
+ * need to be running. The auth and message CRUD flows are tested via
+ * fastify.inject() against a mock database layer.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { vi, describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { FastifyInstance } from "fastify";
+
+// Mock the Prisma plugin to use an in-memory store instead of PostgreSQL.
+// The async factory runs when the module is first imported by app.js.
+vi.mock("../plugins/prisma.js", async () => {
+  const { createInMemoryPrisma } = await import("./helpers/prisma-mock.js");
+  const fp = (await import("fastify-plugin")).default;
+  return {
+    default: fp(async (fastify: Record<string, unknown>) => {
+      (fastify as any).decorate("prisma", createInMemoryPrisma());
+    }),
+  };
+});
 
 let app: FastifyInstance;
 
@@ -30,6 +36,7 @@ let messageId = "";
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
+  process.env.REDIS_URL = ""; // Disable Redis — cache plugin falls back to direct factory calls
   process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://nexus:nexus@localhost:5432/nexus?schema=public";
   process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret-that-is-at-least-32-characters-long!!";
 
@@ -68,19 +75,15 @@ describe("Auth Flow", () => {
 
     accessToken = registerBody.accessToken;
 
-    // Login (may fail if previous token exists; we skip token check and instead
-    // verify the 200 response and extract the token)
+    // Login
     const loginRes = await app.inject({
       method: "POST",
       url: "/api/auth/login",
       payload: { email: testUser.email, password: testUser.password },
     });
 
-    // Note: login may return 500 if a refresh token collision occurs.
-    // We still have a valid accessToken from register, so continue.
-    if (loginRes.statusCode === 200) {
-      accessToken = loginRes.json().accessToken;
-    }
+    expect(loginRes.statusCode).toBe(200);
+    accessToken = loginRes.json().accessToken;
 
     // Me
     const meRes = await app.inject({

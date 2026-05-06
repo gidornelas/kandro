@@ -1,12 +1,10 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: nexus-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     environment:
       POSTGRES_USER: nexus
       POSTGRES_PASSWORD: nexus
@@ -24,7 +22,7 @@ services:
     container_name: nexus-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - nexus-redisdata:/data
     healthcheck:

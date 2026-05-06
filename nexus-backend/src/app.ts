@@ -6,6 +6,7 @@ import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import { ZodError } from "zod";
 import { env } from "./config/env.js";
 import { config } from "./config/constants.js";
 import { handleAppError } from "./lib/errors.js";
@@ -46,7 +47,7 @@ export async function buildApp() {
   // ─── Error Handler ────────────────────────────────────
   fastify.setErrorHandler((error: Error & { issues?: unknown[] }, _request, reply) => {
     // Handle Zod validation errors
-    if (error.name === "ZodError" && error.issues) {
+    if (error instanceof ZodError) {
       return reply.status(400).send({
         error: "VALIDATION_ERROR",
         message: "Dados inválidos",

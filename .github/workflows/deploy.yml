@@ -58,11 +58,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Sync Vercel Environment Variables
+        working-directory: nexus
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+        run: |
+          if [ -z "$VITE_API_URL" ]; then
+            echo "VITE_API_URL secret not set"
+            exit 1
+          fi
+          if [ -z "$VITE_WS_URL" ]; then
+            VITE_WS_URL="$VITE_API_URL"
+          fi
+          vercel env rm VITE_API_URL production --token "$VERCEL_TOKEN" --yes || true
+          vercel env rm VITE_WS_URL production --token "$VERCEL_TOKEN" --yes || true
+          echo "$VITE_API_URL" | vercel env add VITE_API_URL production --token "$VERCEL_TOKEN" --yes
+          echo "$VITE_WS_URL" | vercel env add VITE_WS_URL production --token "$VERCEL_TOKEN" --yes
+
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: nexus
+        working-directory: nexus
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          vercel deploy --prod --yes --token "$VERCEL_TOKEN"
