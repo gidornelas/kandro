@@ -1,74 +1,77 @@
-/* ═══════════════════════════════════════════════════════════
-   NEXUS Design Tokens
-   ═══════════════════════════════════════════════════════════ */
-
-/* ─── Surface Colors ─── */
 :root {
-  --base: #0c0c0d;
-  --s1:   #111113;
-  --s2:   #18181b;
-  --s3:   #1f1f23;
-  --s4:   #27272c;
-  --s5:   #2e2e35;
+  /* ═══════════════════════════════════════════
+     CORPORATE SOFT GLASS — Design Tokens
+     Extraídos da referência visual NEXUS
+     ═══════════════════════════════════════════ */
 
-  /* Borders */
-  --b1: rgba(255,255,255,0.05);
-  --b2: rgba(255,255,255,0.08);
-  --b3: rgba(255,255,255,0.13);
+  /* ─── Base / Background ─── */
+  --color-base:
+    radial-gradient(circle at 16% 12%, rgba(255,255,255,.70) 0%, rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #eef4f8 0%, #d8edf3 58%, #c7e7ee 100%);
 
-  /* Accent */
-  --acc:   #2f5fd6;
-  --acc-s: rgba(47,95,214,0.10);
-  --acc-b: rgba(47,95,214,0.25);
+  /* ─── Surfaces (glass layers) ─── */
+  --color-surface: rgba(255, 255, 255, 0.76);
+  --color-surface-elevated: rgba(255, 255, 255, 0.82);
+  --color-surface-strong: rgba(255, 255, 255, 0.90);
+  --color-surface-solid: rgba(255, 255, 255, 0.98);
+  --color-app-shell: rgba(255, 255, 255, 0.26);
 
-  /* Status */
-  --grn:   #30d158;
-  --grn-s: rgba(48,209,88,0.10);
-  --yel:   #f5a623;
-  --red:   #ff453a;
+  /* ─── Borders ─── */
+  --color-border-subtle: rgba(70, 92, 112, 0.10);
+  --color-border: rgba(70, 92, 112, 0.16);
+  --color-border-accent: rgba(47, 128, 237, 0.28);
+  --color-glass-border: rgba(255, 255, 255, 0.52);
 
-  /* Text */
-  --t1: #f2f2f4;
-  --t2: #8e8e93;
-  --t3: #48484a;
-  --t4: #2c2c2e;
+  /* ─── Accent ─── */
+  --color-accent: #2f80ed;
+  --color-accent-soft: rgba(47, 128, 237, 0.09);
+  --color-accent-border: rgba(47, 128, 237, 0.22);
+  --color-accent-hover: #256fd1;
 
-  /* Typography */
-  --font-display: 'Geist', sans-serif;
-  --font-body:    'Geist', sans-serif;
-  --font-mono:    'Geist Mono', monospace;
+  /* ─── Semantic ─── */
+  --color-success: #35b779;
+  --color-success-soft: rgba(53, 183, 121, 0.11);
+  --color-warning: #c98222;
+  --color-danger: #cc4b4b;
+  --color-danger-soft: rgba(204, 75, 75, 0.08);
+  --color-danger-border: rgba(204, 75, 75, 0.18);
 
-  /* Radii */
-  --r:    8px;
-  --r-sm: 5px;
-}
+  /* ─── Text ─── */
+  --color-text-primary: #253244;
+  --color-text-secondary: #5d6b7a;
+  --color-text-tertiary: #8a98a8;
+  --color-text-muted: #bdc7d2;
 
-/* ─── Legacy aliases (for compatibility) ─── */
-:root {
-  --bg-base:  var(--base);
-  --bg-panel: var(--s1);
-  --bg-card:  var(--s2);
-  --bg-hover: var(--s3);
-  --bg-surface: var(--s4);
+  /* ─── Shadows ─── */
+  --shadow-glass: 0 18px 48px rgba(40, 75, 100, 0.16);
+  --shadow-soft: 0 8px 22px rgba(40, 75, 100, 0.10);
+  --shadow-modal: 0 24px 58px rgba(60, 88, 118, 0.12);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 
-  --border:      var(--b1);
-  --border-soft: var(--b2);
-  --border-bold: var(--b3);
+  /* ─── Border Radius ─── */
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
 
-  --accent:     var(--acc);
-  --accent-soft: var(--acc-s);
-  --accent-border: var(--acc-b);
+  /* ─── Typography ─── */
+  --font-body: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
 
-  --green:  var(--grn);
-  --green-soft: var(--grn-s);
-  --yellow: var(--yel);
-  --red:    var(--red);
+  /* ─── Spacing (4px grid) ─── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
 
-  --text-1: var(--t1);
-  --text-2: var(--t2);
-  --text-3: var(--t3);
-  --text-4: var(--t4);
-
-  --shadow-modal: 0 8px 32px rgba(0,0,0,0.4);
-  --shadow-card:  0 4px 16px rgba(0,0,0,0.2);
+  /* ─── Backdrop blur ─── */
+  --blur-app: blur(22px) saturate(140%);
+  --blur-panel: blur(20px) saturate(135%);
+  --blur-card: blur(14px) saturate(130%);
+  --blur-strong: blur(28px) saturate(170%);
 }

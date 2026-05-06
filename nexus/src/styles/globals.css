@@ -1,137 +1,264 @@
-@import "tailwindcss";
-@import "./tokens.css";
+@import 'tailwindcss';
 
-/* ═══════════════════════════════════════════════════════════
-   Tailwind v4 Theme — maps tokens → Tailwind utility classes
-   ═══════════════════════════════════════════════════════════ */
-@theme {
-  /* Backgrounds */
-  --color-base: var(--base);
-  --color-s1:   var(--s1);
-  --color-s2:   var(--s2);
-  --color-s3:   var(--s3);
-  --color-s4:   var(--s4);
-  --color-s5:   var(--s5);
-
-  /* Borders */
-  --color-b1: var(--b1);
-  --color-b2: var(--b2);
-  --color-b3: var(--b3);
-
-  /* Accent */
-  --color-acc:   var(--acc);
-  --color-acc-s: var(--acc-s);
-  --color-acc-b: var(--acc-b);
-
-  /* Status */
-  --color-grn:   var(--grn);
-  --color-grn-s: var(--grn-s);
-  --color-yel:   var(--yel);
-  --color-red:   var(--red);
-
-  /* Text */
-  --color-t1: var(--t1);
-  --color-t2: var(--t2);
-  --color-t3: var(--t3);
-  --color-t4: var(--t4);
-
-  /* Legacy aliases */
-  --color-bg-base:  var(--base);
-  --color-bg-panel: var(--s1);
-  --color-bg-card:  var(--s2);
-  --color-bg-hover: var(--s3);
-  --color-bg-surface: var(--s4);
-
-  --color-border:      var(--b1);
-  --color-border-soft: var(--b2);
-  --color-border-bold: var(--b3);
-
-  --color-accent:       var(--acc);
-  --color-accent-soft:  var(--acc-s);
-  --color-accent-border: var(--acc-b);
-
-  --color-green:  var(--grn);
-  --color-green-soft: var(--grn-s);
-  --color-yellow: var(--yel);
-  --color-red:    var(--red);
-
-  --color-text-1: var(--t1);
-  --color-text-2: var(--t2);
-  --color-text-3: var(--t3);
-  --color-text-4: var(--t4);
-
-  /* Typography */
-  --font-display: 'Geist', sans-serif;
-  --font-body:    'Geist', sans-serif;
-  --font-mono:    'Geist Mono', monospace;
-
-  /* Radii */
-  --radius-r:    8px;
-  --radius-r-sm: 5px;
-
-  /* Shadows */
-  --shadow-modal: 0 8px 32px rgba(0,0,0,0.4);
-  --shadow-card:  0 4px 16px rgba(0,0,0,0.2);
+@theme inline {
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-/* ── Error alert ── */
-.alert-error {
-  background-color: color-mix(in srgb, var(--red) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
-  color: var(--red);
+/* ═══════════════════════════════════════════
+   Global Reset & Base
+   ═══════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  overflow: hidden;
+  color-scheme: light;
+}
 
 body {
   font-family: var(--font-body);
-  background: var(--base);
-  color: var(--t1);
+  background: var(--color-base);
+  color: var(--color-text-primary);
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-::-webkit-scrollbar       { width: 3px; height: 3px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--b3); border-radius: 2px; }
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
 
-/* ── Focus-visible ring global ── */
-*:focus-visible {
-  outline: 2px solid var(--acc);
+button,
+input,
+textarea,
+select,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+button {
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Focus ─── */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(47, 128, 237, 0.45);
   outline-offset: 2px;
 }
 
-/* ── Animations ── */
-/* Only define keyframes inside no-preference, so they don't exist when reduce is active */
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes fadeUp    { from { opacity:0; transform:translateY(5px);  } to { opacity:1; transform:none; } }
-  @keyframes slideIn   { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:none; } }
-  @keyframes livepulse { 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
-  @keyframes wavebar   { from { height:3px; } to { height:11px; } }
-  @keyframes wb        { from { height:4px; } to { height:13px; } }
-  @keyframes skeletonPulse { 0%,100%{ opacity:.4; } 50%{ opacity:.1; } }
+::selection {
+  background: rgba(47, 128, 237, 0.18);
 }
 
-/* Fallback: bare keyframes for browsers that don't support prefers-reduced-motion */
-@keyframes fadeUp    { from { opacity:0; transform:translateY(5px);  } to { opacity:1; transform:none; } }
-@keyframes slideIn   { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:none; } }
-@keyframes livepulse { 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
-@keyframes wavebar   { from { height:3px; } to { height:11px; } }
-@keyframes wb        { from { height:4px; } to { height:13px; } }
-@keyframes skeletonPulse { 0%,100%{ opacity:.4; } 50%{ opacity:.1; } }
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(247, 37, 133, 0.28);
+  border-radius: 999px;
+}
+
+/* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* ── Custom cursor states ── */
-body.resizing, body.resizing * {
-  cursor: ns-resize !important;
-  user-select: none !important;
+/* ═══════════════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════════════ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes livepulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes wb {
+  from {
+    height: 4px;
+  }
+  to {
+    height: 13px;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Utility Classes
+   ═══════════════════════════════════════════ */
+
+.glass-panel {
+  background: var(--color-surface);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-inset-highlight);
+}
+
+.glass-card {
+  background: var(--color-surface-elevated);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.glass-input:focus {
+  border-color: var(--color-border-accent);
+  box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.08);
+}
+
+.soft-button {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+}
+
+.soft-button:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: var(--color-border-accent);
+  color: var(--color-text-primary);
+}
+
+.soft-button-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(47, 128, 237, 0.18);
+}
+
+.soft-button-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.icon-button {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--color-text-primary);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.44);
+}
+
+.status-dot-online {
+  background: var(--color-success);
+}
+
+.status-dot-busy {
+  background: var(--color-warning);
+}
+
+.status-dot-away {
+  background: var(--color-text-tertiary);
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.2s ease;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s ease;
 }
