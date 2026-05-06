@@ -49,8 +49,7 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service nexus-backend --detach
-        working-directory: nexus-backend
+        run: railway up nexus-backend --service kandro --detach
 
   deploy-web:
     name: Deploy Web (Vercel)
