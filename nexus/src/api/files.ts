@@ -1,7 +1,6 @@
 import { apiClient, ApiError } from './client'
 import { useAuthStore } from '../stores/authStore'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+import { API_URL } from '../lib/env'
 
 export interface FileNodeResponse {
   id: string

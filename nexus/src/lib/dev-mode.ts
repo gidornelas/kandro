@@ -3,7 +3,7 @@
  * When backend is unreachable, provides mock auth and clear feedback.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+import { API_URL } from './env'
 
 /** Check if backend is reachable */
 export async function checkBackendHealth(): Promise<boolean> {

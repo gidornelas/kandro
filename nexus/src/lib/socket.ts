@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client'
 import { useAuthStore } from '../stores/authStore'
+import { WS_URL } from './env'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (1 min before 15-min token expiry)
 
 let socket: Socket | null = null
