@@ -105,10 +105,10 @@ export function CardModal() {
   const completedSubtasks = subtasks.filter((s) => s.done).length
 
   return (
-    <Modal open onClose={close} title="">
-      <div style={{ display: 'flex', gap: '20px', minWidth: '600px', maxWidth: '760px' }}>
+    <Modal open onClose={close} title="" size="xl">
+      <div style={{ display: 'flex', gap: '32px', width: '100%' }}>
         {/* Main column */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {/* Title */}
           <input
             type="text"
@@ -318,7 +318,7 @@ export function CardModal() {
         </div>
 
         {/* Sidebar */}
-        <div style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Actions header */}
           <div>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: '8px' }}>

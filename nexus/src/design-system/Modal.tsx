@@ -8,11 +8,12 @@ export interface ModalProps {
   description?: string
   children: React.ReactNode
   footer?: React.ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  width?: string
 }
 
-export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
-  const widthMap = { sm: '360px', md: '440px', lg: '560px' }
+export function Modal({ open, onClose, title, description, children, footer, size = 'md', width }: ModalProps) {
+  const widthMap = { sm: '360px', md: '440px', lg: '560px', xl: '840px' }
 
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -36,7 +37,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: widthMap[size],
+            width: width || widthMap[size],
             maxWidth: 'calc(100vw - 40px)',
             maxHeight: 'calc(100vh - 40px)',
             overflow: 'auto',
