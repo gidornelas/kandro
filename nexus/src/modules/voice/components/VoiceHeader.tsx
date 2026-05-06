@@ -1,7 +1,7 @@
 import { useVoiceStore } from '../store'
-import { useCallTimer } from '../hooks/useCallTimer'
+import { fmtDuration } from '../lib/fmtDuration'
 
-const LAYOUTS: { key: typeof useVoiceStore.getState.prototype.layout; label: string; icon: string }[] = [
+const LAYOUTS: { key: 'voice' | 'grid' | 'spotlight' | 'screen'; label: string; icon: string }[] = [
   { key: 'voice', label: 'Voz', icon: '🎙' },
   { key: 'grid', label: 'Grid', icon: '⊞' },
   { key: 'spotlight', label: 'Destaque', icon: '⬡' },
@@ -11,11 +11,10 @@ const LAYOUTS: { key: typeof useVoiceStore.getState.prototype.layout; label: str
 export function VoiceHeader() {
   const participants = useVoiceStore((s) => s.participants)
   const layout = useVoiceStore((s) => s.layout)
+  const callDuration = useVoiceStore((s) => s.callDuration)
   const setLayout = useVoiceStore((s) => s.setLayout)
   const toggleChat = useVoiceStore((s) => s.toggleChat)
   const leaveRoom = useVoiceStore((s) => s.leaveRoom)
-  const active = useVoiceStore((s) => s.active)
-  const timer = useCallTimer(active)
 
   return (
     <div
@@ -31,7 +30,6 @@ export function VoiceHeader() {
         backdropFilter: 'var(--blur-panel)',
       }}
     >
-      {/* LIVE badge */}
       <div
         style={{
           display: 'flex',
@@ -52,7 +50,6 @@ export function VoiceHeader() {
         LIVE
       </div>
 
-      {/* Room name */}
       <span style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap' }}>Standup Daily</span>
       <span style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
         {participants.length} participantes
@@ -60,7 +57,6 @@ export function VoiceHeader() {
 
       <div style={{ flex: 1 }} />
 
-      {/* Timer */}
       <span
         style={{
           fontSize: '13px',
@@ -70,10 +66,9 @@ export function VoiceHeader() {
           flexShrink: 0,
         }}
       >
-        {timer}
+        {fmtDuration(callDuration)}
       </span>
 
-      {/* Layout toggles */}
       <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
         {LAYOUTS.map((l) => (
           <button
@@ -100,7 +95,6 @@ export function VoiceHeader() {
         ))}
       </div>
 
-      {/* Chat toggle */}
       <button
         onClick={toggleChat}
         title="Chat"
@@ -121,7 +115,6 @@ export function VoiceHeader() {
         💬
       </button>
 
-      {/* Leave */}
       <button
         onClick={leaveRoom}
         style={{

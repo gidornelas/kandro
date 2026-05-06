@@ -21,27 +21,35 @@ export function VoiceRoom() {
   const layout = useVoiceStore((s) => s.layout)
   const active = useVoiceStore((s) => s.active)
   const participants = useVoiceStore((s) => s.participants)
+  const tickTimer = useVoiceStore((s) => s.tickTimer)
+  const setActiveSpeaker = useVoiceStore((s) => s.setActiveSpeaker)
   const [isLoading] = React.useState(false)
+
+  const timerRef = React.useRef<number | null>(null)
+  const waveRef = React.useRef<number | null>(null)
 
   React.useEffect(() => {
     if (!active) return
-    const id = setInterval(() => {
-      useVoiceStore.getState().tickTimer()
+    timerRef.current = window.setInterval(() => {
+      tickTimer()
     }, 1000)
-    return () => clearInterval(id)
-  }, [active])
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [active, tickTimer])
 
-  // Waveform rotation: RC -> AL -> JL every 3s
   React.useEffect(() => {
     if (!active) return
     const speakers = ['rc', 'al', 'jl']
     let idx = 0
-    const id = setInterval(() => {
+    waveRef.current = window.setInterval(() => {
       idx = (idx + 1) % speakers.length
-      useVoiceStore.getState().setActiveSpeaker(speakers[idx])
+      setActiveSpeaker(speakers[idx])
     }, 3000)
-    return () => clearInterval(id)
-  }, [active])
+    return () => {
+      if (waveRef.current) clearInterval(waveRef.current)
+    }
+  }, [active, setActiveSpeaker])
 
   const ActiveLayout = LayoutMap[layout]
 
@@ -50,7 +58,6 @@ export function VoiceRoom() {
       <VoiceHeader />
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {isLoading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -69,7 +76,6 @@ export function VoiceRoom() {
           <VoiceFooter />
         </div>
 
-        {/* Chat panel */}
         <RoomChatPanel />
       </div>
     </div>

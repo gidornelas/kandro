@@ -1,19 +1,17 @@
-import React from 'react'
 import { useVoiceStore } from '../store'
-import { useCallTimer } from '../hooks/useCallTimer'
+import { fmtDuration } from '../lib/fmtDuration'
 
 export function VoiceFooter() {
   const micEnabled = useVoiceStore((s) => s.micEnabled)
   const cameraEnabled = useVoiceStore((s) => s.cameraEnabled)
   const screenEnabled = useVoiceStore((s) => s.screenEnabled)
   const chatOpen = useVoiceStore((s) => s.chatOpen)
-  const active = useVoiceStore((s) => s.active)
+  const callDuration = useVoiceStore((s) => s.callDuration)
   const toggleMic = useVoiceStore((s) => s.toggleMic)
   const toggleCamera = useVoiceStore((s) => s.toggleCamera)
   const toggleScreen = useVoiceStore((s) => s.toggleScreen)
   const toggleChat = useVoiceStore((s) => s.toggleChat)
   const leaveRoom = useVoiceStore((s) => s.leaveRoom)
-  const timer = useCallTimer(active)
 
   return (
     <div
@@ -30,7 +28,6 @@ export function VoiceFooter() {
         position: 'relative',
       }}
     >
-      {/* Timer left */}
       <div
         style={{
           position: 'absolute',
@@ -49,11 +46,10 @@ export function VoiceFooter() {
             letterSpacing: '.04em',
           }}
         >
-          {timer}
+          {fmtDuration(callDuration)}
         </span>
       </div>
 
-      {/* Center controls */}
       <ControlBtn active={micEnabled} onClick={toggleMic} label="Mic">
         {micEnabled ? '🎤' : '🔇'}
       </ControlBtn>
@@ -67,7 +63,6 @@ export function VoiceFooter() {
         💬
       </ControlBtn>
 
-      {/* Leave right */}
       <button
         onClick={leaveRoom}
         style={{
