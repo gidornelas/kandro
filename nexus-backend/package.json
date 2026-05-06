@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "bun dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/ --max-warnings 0",
     "test": "vitest run",
