@@ -1,6 +1,7 @@
 import React from 'react'
 import { useUIStore } from '../modules/ui/store'
 import { useAuthStore } from '../modules/auth/store'
+import { useVoiceStore } from '../modules/voice/store'
 import { CHANNELS, DMS, USERS } from '../shared/mocks'
 
 function Section({ id, label, children, action }: { id: string; label: string; children: React.ReactNode; action?: React.ReactNode }) {
@@ -128,6 +129,8 @@ export function Sidebar({ width }: { width: number }) {
   const openChannel = useUIStore((s) => s.openChannel)
   const openDm = useUIStore((s) => s.openDm)
   const openProject = useUIStore((s) => s.openProject)
+  const openVoice = useUIStore((s) => s.openVoice)
+  const joinRoom = useVoiceStore((s) => s.joinRoom)
 
   const projectChannels = CHANNELS.filter((c) => c.type === 'board')
   const textChannels = CHANNELS.filter((c) => c.type === 'text')
@@ -216,7 +219,10 @@ export function Sidebar({ width }: { width: number }) {
               icon="🔊"
               label={ch.name}
               active={activeChannelId === ch.id}
-              onClick={() => openChannel(ch.id)}
+              onClick={() => {
+                openVoice(ch.id)
+                joinRoom(ch.id)
+              }}
             />
           ))}
         </Section>

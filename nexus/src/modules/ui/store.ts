@@ -19,7 +19,7 @@ interface UIState {
   openProject: (id: string) => void
   openChannel: (id: string) => void
   openDm: (id: string) => void
-  openVoice: () => void
+  openVoice: (channelId?: string) => void
   openThread: (cardId: string | null) => void
   closeThread: () => void
   toggleSection: (id: string) => void
@@ -46,7 +46,8 @@ export const useUIStore = create<UIState>((set) => ({
     set({ mainMode: 'channel', activeChannelId: id, threadOpen: false, threadCardId: null }),
   openDm: (id) =>
     set({ mainMode: 'dm', activeDmId: id, threadOpen: false, threadCardId: null }),
-  openVoice: () => set({ mainMode: 'voice', threadOpen: false }),
+  openVoice: (channelId?: string) =>
+    set({ mainMode: 'voice', activeChannelId: channelId ?? null, threadOpen: false, threadCardId: null }),
   openThread: (cardId) => set({ threadOpen: true, threadCardId: cardId }),
   closeThread: () => set({ threadOpen: false, threadCardId: null }),
   toggleSection: (id) =>
