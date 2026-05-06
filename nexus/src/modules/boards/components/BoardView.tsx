@@ -17,9 +17,9 @@ import { CardModal } from './CardModal'
 import { AddCardInline } from './AddCardInline'
 import { ColumnHeader } from './ColumnHeader'
 
-function KanbanCardItem({ card }: { card: ReturnType<typeof useBoardStore.getState>['cards'][0] }) {
+function KanbanCardItem({ card }: { card: { id: string; title: string; labels: string[]; priority: string; priorityColor: string; assignees: string[]; dueType: string; progress: number; threadCount: number } }) {
   const openCardModal = useBoardStore((s) => s.openCardModal)
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id, data: { card } })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id })
 
   const isOverdue = card.dueType === 'overdue'
   const isWarning = card.dueType === 'warning'
@@ -135,10 +135,9 @@ function KanbanCardItem({ card }: { card: ReturnType<typeof useBoardStore.getSta
   )
 }
 
-function KanbanColumn({ col }: { col: ReturnType<typeof useBoardStore.getState>['columns'][0] }) {
-  const cards = useBoardStore((s) => s.cards.filter((c) => c.col === col.id))
+function KanbanColumn({ col, columnCards }: { col: { id: string; name: string; color: string }; columnCards: { id: string; title: string; labels: string[]; priority: string; priorityColor: string; assignees: string[]; dueType: string; progress: number; threadCount: number }[] }) {
   const openAddCard = useBoardStore((s) => s.openAddCard)
-  const { setNodeRef, isOver } = useDroppable({ id: col.id, data: { columnId: col.id } })
+  const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
   return (
     <div
@@ -159,7 +158,7 @@ function KanbanColumn({ col }: { col: ReturnType<typeof useBoardStore.getState>[
       <ColumnHeader col={col} />
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
         <AddCardInline columnId={col.id} />
-        {cards.map((card) => (
+        {columnCards.map((card) => (
           <KanbanCardItem key={card.id} card={card} />
         ))}
       </div>
@@ -203,7 +202,34 @@ export function BoardView() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   )
 
-  const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
+  const activeCard = React.useMemo(() => {
+    if (!activeId) return null
+    return cards.find((c) => c.id === activeId) ?? null
+  }, [activeId, cards])
+
+  const handleDragStart = React.useCallback((event: { active: { id: string | number } }) => {
+    setActiveId(String(event.active.id))
+  }, [])
+
+  const handleDragEnd = React.useCallback((event: { active: { id: string | number }; over: { id: string | number } | null }) => {
+    setActiveId(null)
+    if (!event.over) return
+    const activeId = String(event.active.id)
+    const overId = String(event.over.id)
+    const card = cards.find((c) => c.id === activeId)
+    if (!card) return
+    // Drop on column
+    const targetCol = columns.find((c) => c.id === overId)
+    if (targetCol) {
+      moveCard(card.id, targetCol.id)
+      return
+    }
+    // Drop on another card -> move to same column
+    const overCard = cards.find((c) => c.id === overId)
+    if (overCard && overCard.col !== card.col) {
+      moveCard(card.id, overCard.col)
+    }
+  }, [cards, columns, moveCard])
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0, height: '100%' }}>
@@ -241,25 +267,8 @@ export function BoardView() {
         </div>
         <DndContext
           sensors={sensors}
-          onDragStart={({ active }) => setActiveId(active.id as string)}
-          onDragEnd={({ active, over }) => {
-            setActiveId(null)
-            if (!over) return
-            const overId = over.id as string
-            const card = cards.find((c) => c.id === active.id)
-            if (!card) return
-            // Drop on column
-            const targetCol = columns.find((c) => c.id === overId)
-            if (targetCol) {
-              moveCard(card.id, targetCol.id)
-              return
-            }
-            // Drop on another card -> move to same column
-            const overCard = cards.find((c) => c.id === overId)
-            if (overCard && overCard.col !== card.col) {
-              moveCard(card.id, overCard.col)
-            }
-          }}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
           <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 18px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
             {isLoading ? (
@@ -282,7 +291,11 @@ export function BoardView() {
             ) : (
               <>
                 {columns.map((col) => (
-                  <KanbanColumn key={col.id} col={col} />
+                  <KanbanColumn
+                    key={col.id}
+                    col={col}
+                    columnCards={cards.filter((c) => c.col === col.id)}
+                  />
                 ))}
                 <div style={{ width: '260px', flexShrink: 0 }}>
                   {showAddCol ? (
