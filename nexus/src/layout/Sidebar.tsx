@@ -4,6 +4,24 @@ import { useAuthStore } from '../modules/auth/store'
 import { useVoiceStore } from '../modules/voice/store'
 import { CHANNELS, DMS, USERS } from '../shared/mocks'
 
+function StatusDot({ status }: { status?: string }) {
+  const color = status === 'online' ? 'var(--color-success)' : status === 'busy' ? 'var(--color-danger)' : status === 'away' ? 'var(--color-warning)' : 'var(--color-text-tertiary)'
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        bottom: '-1px',
+        right: '-1px',
+        width: '6px',
+        height: '6px',
+        borderRadius: '50%',
+        background: color,
+        border: '1.5px solid var(--color-surface)',
+      }}
+    />
+  )
+}
+
 function Section({ id, label, children, action }: { id: string; label: string; children: React.ReactNode; action?: React.ReactNode }) {
   const collapsed = useUIStore((s) => s.collapsedSections.has(id))
   const toggle = useUIStore((s) => s.toggleSection)
@@ -234,21 +252,24 @@ export function Sidebar({ width }: { width: number }) {
               <SidebarItem
                 key={dm.id}
                 icon={
-                  <div
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '50%',
-                      background: u?.color || 'var(--color-accent)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '7px',
-                      fontWeight: 700,
-                      color: '#fff',
-                    }}
-                  >
-                    {u?.initials}
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: u?.color || 'var(--color-accent)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '7px',
+                        fontWeight: 700,
+                        color: '#fff',
+                      }}
+                    >
+                      {u?.initials}
+                    </div>
+                    <StatusDot status={u?.status} />
                   </div>
                 }
                 label={u?.name || dm.userId}
@@ -294,18 +315,7 @@ export function Sidebar({ width }: { width: number }) {
           }}
         >
           {user?.initials || '?'}
-          <span
-            style={{
-              position: 'absolute',
-              bottom: '-1px',
-              right: '-1px',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: 'var(--color-success)',
-              border: '2px solid var(--color-surface)',
-            }}
-          />
+          <StatusDot status={user?.status} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '12px', fontWeight: 600 }}>{user?.name || 'Usuário'}</div>
