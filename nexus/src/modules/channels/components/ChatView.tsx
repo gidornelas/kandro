@@ -1,14 +1,23 @@
 import React from 'react'
 import { useUIStore } from '../../ui/store'
-import { MESSAGES, USERS } from '../../../shared/mocks'
+import { useMessagesStore } from '../../messages/store'
+import { USERS } from '../../../shared/mocks'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 
-const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSAGES[0] }) {
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🤔', '👀']
+
+const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[]; attachment?: { name: string; size: string; icon: string }; taskCard?: { label: string; title: string; due: string; priority: string; priorityColor: string } } }) {
   const user = USERS[msg.userId]
+  const addReaction = useMessagesStore((s) => s.addReaction)
+  const [showReactions, setShowReactions] = React.useState(false)
 
   return (
-    <div style={{ marginBottom: '14px' }}>
+    <div
+      style={{ marginBottom: '14px', position: 'relative' }}
+      onMouseEnter={() => setShowReactions(true)}
+      onMouseLeave={() => setShowReactions(false)}
+    >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
         <div
           style={{
@@ -25,7 +34,7 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSA
             flexShrink: 0,
           }}
         >
-          {user?.initials}
+          {user?.initials || '?'}
         </div>
         <span style={{ fontSize: '13px', fontWeight: 600 }}>{user?.name || msg.user}</span>
         <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{msg.time}</span>
@@ -69,16 +78,7 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSA
               cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                fontSize: '10px',
-                color: 'var(--color-accent)',
-                fontWeight: 600,
-                marginBottom: '3px',
-                textTransform: 'uppercase',
-                letterSpacing: '.05em',
-              }}
-            >
+            <div style={{ fontSize: '10px', color: 'var(--color-accent)', fontWeight: 600, marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '.05em' }}>
               {msg.taskCard.label}
             </div>
             <div style={{ fontSize: '12px', fontWeight: 500 }}>{msg.taskCard.title}</div>
@@ -93,6 +93,7 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSA
             {msg.reactions.map((r, i) => (
               <span
                 key={i}
+                onClick={() => addReaction(msg.id, r.emoji)}
                 style={{
                   padding: '2px 8px',
                   background: r.me ? 'var(--color-accent-soft)' : 'rgba(255,255,255,.65)',
@@ -108,6 +109,30 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSA
             ))}
           </div>
         )}
+        {showReactions && (
+          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+            {QUICK_REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => addReaction(msg.id, emoji)}
+                style={{
+                  padding: '3px 7px',
+                  borderRadius: '999px',
+                  border: '1px solid var(--color-border-subtle)',
+                  background: 'rgba(255,255,255,.72)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  opacity: 0.7,
+                  transition: 'opacity .15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7' }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -115,13 +140,28 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: typeof MESSA
 
 export function ChatView() {
   const activeChannelId = useUIStore((s) => s.activeChannelId)
-  const messages = MESSAGES.filter((m) => m.channel === activeChannelId)
+  const messages = useMessagesStore((s) => s.getChannelMessages(activeChannelId || ''))
+  const sendMessage = useMessagesStore((s) => s.sendMessage)
   const [input, setInput] = React.useState('')
-  const [isLoading] = React.useState(false) // placeholder para query real
+  const [isLoading] = React.useState(false)
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages.length])
+
+  const handleSend = () => {
+    const text = input.trim()
+    if (!text || !activeChannelId) return
+    sendMessage(activeChannelId, text)
+    setInput('')
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {isLoading ? (
           <>
             <Skeleton height={60} count={4} />
@@ -154,6 +194,12 @@ export function ChatView() {
             placeholder="Mensagem..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
             style={{
               flex: 1,
               background: 'transparent',
@@ -166,19 +212,22 @@ export function ChatView() {
             }}
           />
           <button
+            onClick={handleSend}
+            disabled={!input.trim()}
             style={{
               width: '28px',
               height: '28px',
               borderRadius: '8px',
               border: 'none',
-              background: 'var(--color-accent)',
+              background: input.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
               color: '#fff',
               fontSize: '14px',
-              cursor: 'pointer',
+              cursor: input.trim() ? 'pointer' : 'default',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
+              transition: 'background .15s',
             }}
           >
             →
