@@ -39,29 +39,27 @@ jobs:
   deploy-railway:
     name: Deploy to Railway
     needs: build-and-push
-    if: ${{ secrets.RAILWAY_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
 
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up nexus-backend --service kandro --detach
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "Skipping Railway deploy: RAILWAY_TOKEN not configured"
+            exit 0
+          fi
+          npm install -g @railway/cli
+          railway up nexus-backend --service kandro --detach
 
   deploy-web:
     name: Deploy Web (Vercel)
     needs: build-and-push
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
 
       - name: Deploy to Vercel
         working-directory: nexus
@@ -70,5 +68,10 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Skipping Vercel deploy: VERCEL_TOKEN not configured"
+            exit 0
+          fi
+          npm install -g vercel@latest
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel deploy --prod --yes --token "$VERCEL_TOKEN"
