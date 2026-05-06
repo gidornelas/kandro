@@ -120,7 +120,7 @@ function SidebarItem({
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ width }: { width: number }) {
   const user = useAuthStore((s) => s.user)
   const activeChannelId = useUIStore((s) => s.activeChannelId)
   const activeDmId = useUIStore((s) => s.activeDmId)
@@ -136,7 +136,7 @@ export function Sidebar() {
   return (
     <div
       style={{
-        width: '232px',
+        width: `${width}px`,
         flexShrink: 0,
         background: 'var(--color-surface)',
         borderRight: '1px solid var(--color-border-subtle)',
@@ -261,7 +261,7 @@ export function Sidebar() {
           position: 'absolute',
           bottom: 0,
           left: 0,
-          width: '232px',
+          width: `${width}px`,
           height: '40px',
           display: 'flex',
           alignItems: 'center',
