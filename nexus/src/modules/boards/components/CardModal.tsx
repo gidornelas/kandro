@@ -130,6 +130,24 @@ export function CardModal() {
             onBlur={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
           />
 
+          {/* Progress bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,.72)', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: '999px',
+                  background: 'linear-gradient(90deg, #ff79b0, var(--color-accent))',
+                  width: `${progress}%`,
+                  transition: 'width .3s ease',
+                }}
+              />
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-tertiary)', minWidth: '32px', textAlign: 'right' }}>
+              {progress}%
+            </span>
+          </div>
+
           {/* Labels */}
           {labels.length > 0 && (
             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
