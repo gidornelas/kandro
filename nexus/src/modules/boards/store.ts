@@ -14,6 +14,7 @@ interface BoardState {
   deleteCard: (cardId: string) => void
   moveCard: (cardId: string, toColumnId: string) => void
   reorderCard: (cardId: string, overId: string) => void
+  addCardComment: (cardId: string, text: string) => void
 
   addColumn: (name: string) => void
   updateColumn: (columnId: string, name: string) => void
@@ -56,8 +57,25 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       subtasks: [],
       dueDate: '',
       files: [],
+      cardComments: [],
     }
     set({ cards: [...get().cards, card], addingToColumn: null })
+  },
+
+  addCardComment(cardId, text) {
+    const comment = {
+      id: `cc-${Date.now()}`,
+      userId: 'me',
+      text,
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    }
+    set({
+      cards: get().cards.map((c) =>
+        c.id === cardId
+          ? { ...c, cardComments: [...(c.cardComments || []), comment], comments: (c.comments || 0) + 1 }
+          : c
+      ),
+    })
   },
 
   updateCard(cardId, updates) {

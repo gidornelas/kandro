@@ -189,6 +189,7 @@ export interface KanbanCard {
   subtasks?: { id: string; text: string; done: boolean }[]
   dueDate?: string
   files?: { name: string; size: string; icon: string }[]
+  cardComments?: { id: string; userId: string; text: string; time: string }[]
 }
 
 export interface TimelineEvent {

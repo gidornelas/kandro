@@ -2,6 +2,7 @@ import React from 'react'
 import { Modal } from '../../../design-system/Modal'
 import { useBoardStore } from '../store'
 import { USERS } from '../../../shared/mocks'
+import { RichTextEditor } from './RichTextEditor'
 
 const PRIORITIES = [
   { label: 'Baixa', color: '#8e8e93' },
@@ -35,10 +36,11 @@ export function CardModal() {
   const [subtasks, setSubtasks] = React.useState(() => card?.subtasks ?? [])
   const [dueDate, setDueDate] = React.useState(() => card?.dueDate ?? '')
   const [files, setFiles] = React.useState(() => card?.files ?? [])
-  const [descFocused, setDescFocused] = React.useState(false)
+  const [labels, setLabels] = React.useState(() => card?.labels ?? [])
+  const [cardComments, setCardComments] = React.useState(() => card?.cardComments ?? [])
+  const [newComment, setNewComment] = React.useState('')
   const [newSubtask, setNewSubtask] = React.useState('')
   const [newLabel, setNewLabel] = React.useState('')
-  const [labels, setLabels] = React.useState(() => card?.labels ?? [])
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   if (!card) return null
@@ -99,6 +101,7 @@ export function CardModal() {
       files,
       labels,
       attachments: files.length,
+      cardComments,
     })
   }
 
@@ -177,35 +180,7 @@ export function CardModal() {
           {/* Description */}
           <div>
             <SectionTitle icon="📝" label="Descrição" />
-            <div
-              style={{
-                background: descFocused ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.45)',
-                border: `1px solid ${descFocused ? 'var(--color-accent-border)' : 'var(--color-border-subtle)'}`,
-                borderRadius: '10px',
-                padding: '10px 12px',
-                transition: 'all .15s',
-              }}
-            >
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onFocus={() => setDescFocused(true)}
-                onBlur={() => setDescFocused(false)}
-                placeholder="Adicione uma descrição mais detalhada..."
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontSize: '13px',
-                  fontFamily: 'var(--font-body)',
-                  color: 'var(--color-text-primary)',
-                  lineHeight: 1.6,
-                }}
-              />
-            </div>
+            <RichTextEditor value={description} onChange={setDescription} />
           </div>
 
           {/* Checklist */}
@@ -313,6 +288,145 @@ export function CardModal() {
               >
                 Adicionar
               </button>
+            </div>
+          </div>
+
+          {/* Comments / Discussion */}
+          <div>
+            <SectionTitle icon="💬" label={`Atividade ${cardComments.length > 0 ? `(${cardComments.length})` : ''}`} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {cardComments.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
+                  {cardComments.map((c) => {
+                    const commentUser = USERS[c.userId]
+                    const isMe = c.userId === 'me'
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'flex-start',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          background: isMe ? 'var(--color-accent-soft)' : 'rgba(255,255,255,.45)',
+                          border: `1px solid ${isMe ? 'var(--color-accent-border)' : 'var(--color-border-subtle)'}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            background: commentUser?.color || 'var(--color-accent)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#fff',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {commentUser?.initials || '?'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: isMe ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>
+                              {isMe ? 'Você' : commentUser?.name || c.userId}
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{c.time}</span>
+                          </div>
+                          <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--color-text-primary)', margin: 0, wordBreak: 'break-word' }}>{c.text}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'var(--color-accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }}
+                >
+                  EU
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="Escreva um comentário..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        const text = newComment.trim()
+                        if (!text) return
+                        const comment = {
+                          id: `cc-${Date.now()}`,
+                          userId: 'me',
+                          text,
+                          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        }
+                        setCardComments((prev) => [...prev, comment])
+                        setNewComment('')
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--color-border)',
+                      background: 'rgba(255,255,255,.72)',
+                      fontSize: '13px',
+                      fontFamily: 'var(--font-body)',
+                      color: 'var(--color-text-primary)',
+                      outline: 'none',
+                    }}
+                  />
+                  {newComment.trim() && (
+                    <button
+                      onClick={() => {
+                        const text = newComment.trim()
+                        if (!text) return
+                        const comment = {
+                          id: `cc-${Date.now()}`,
+                          userId: 'me',
+                          text,
+                          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        }
+                        setCardComments((prev) => [...prev, comment])
+                        setNewComment('')
+                      }}
+                      style={{
+                        alignSelf: 'flex-start',
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        background: 'var(--color-accent)',
+                        color: '#fff',
+                        border: 'none',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Comentar
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
