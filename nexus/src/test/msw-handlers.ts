@@ -23,7 +23,7 @@ const allColumnMeta: Record<string, { name: string; color: string; isTerminal: b
 }
 
 // ── Mutable board card state ──
-let boardCards = [
+const boardCards = [
   {
     id: 'col-1', channelId: 'ch-board', name: 'A Fazer', color: '#6b7280', position: 0, isTerminal: false,
     _count: { cards: 1 },

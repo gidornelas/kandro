@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { configureAuthHooks } from '../api/client'
 import * as authApi from '../api/auth'
+import { forceMockMode, isCurrentlyMockMode, resetMockMode } from '../api/auth'
 import type { AuthUser } from '../types'
 import { useToastStore } from './toastStore'
 
@@ -12,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
+  isMockMode: boolean
 
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
@@ -22,6 +24,7 @@ interface AuthState {
   refreshAccessToken: () => Promise<{ accessToken: string; refreshToken: string } | null>
   updateProfile: (data: { name?: string; image?: string }) => Promise<void>
   clearError: () => void
+  detectMockMode: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -30,17 +33,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  isMockMode: false,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
       const res = await authApi.login(email, password)
       localStorage.setItem(REFRESH_KEY, res.refreshToken)
+      // Lock mock mode after first successful mock login
+      if (isCurrentlyMockMode()) forceMockMode()
       set({
         user: res.user,
         accessToken: res.accessToken,
         isAuthenticated: true,
         isLoading: false,
+        isMockMode: isCurrentlyMockMode(),
       })
       useToastStore.getState().add('success', 'Login realizado com sucesso')
     } catch (err) {
@@ -55,11 +62,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const res = await authApi.register(email, password, name)
       localStorage.setItem(REFRESH_KEY, res.refreshToken)
+      if (isCurrentlyMockMode()) forceMockMode()
       set({
         user: res.user,
         accessToken: res.accessToken,
         isAuthenticated: true,
         isLoading: false,
+        isMockMode: isCurrentlyMockMode(),
       })
       useToastStore.getState().add('success', 'Conta criada com sucesso')
     } catch (err) {
@@ -101,10 +110,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ accessToken: tokens.accessToken })
 
       const user = await authApi.getMe()
-      set({ user, isAuthenticated: true, isLoading: false })
+      set({ user, isAuthenticated: true, isLoading: false, isMockMode: isCurrentlyMockMode() })
     } catch {
       localStorage.removeItem(REFRESH_KEY)
-      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false })
+      resetMockMode()
+      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, isMockMode: false })
     }
   },
 
@@ -136,6 +146,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: null, accessToken: null, isAuthenticated: false, error: null })
       return null
     }
+  },
+
+  detectMockMode: async () => {
+    // Probe backend; update isMockMode reactively
+    const mock = await import('../api/auth').then(m =>
+      m.isCurrentlyMockMode() ? true : import('../lib/dev-mode').then(d => d.checkBackendHealth().then(r => !r))
+    )
+    set({ isMockMode: mock })
   },
 }))
 

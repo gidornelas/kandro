@@ -10,6 +10,9 @@ vi.mock('../api/auth', () => ({
   refresh: vi.fn(),
   getMe: vi.fn(),
   updateProfile: vi.fn(),
+  forceMockMode: vi.fn(),
+  isCurrentlyMockMode: vi.fn(() => false),
+  resetMockMode: vi.fn(),
 }))
 
 const mockUser: AuthUser = {

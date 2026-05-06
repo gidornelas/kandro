@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../stores/authStore'
+import { checkBackendHealth, isDevMode } from '../../lib/dev-mode'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -25,6 +26,13 @@ export function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [backendOffline, setBackendOffline] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (isDevMode) {
+      checkBackendHealth().then(ok => setBackendOffline(!ok))
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,11 +86,43 @@ export function LoginPage() {
           </p>
         </div>
 
+        {/* Dev mode banner */}
+        {isDevMode && backendOffline && (
+          <div
+            className="mb-4 p-3 rounded-[var(--r-sm)] border text-xs leading-relaxed"
+            role="alert"
+            style={{
+              background: 'color-mix(in srgb, var(--yel) 12%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--yel) 30%, transparent)',
+              color: 'var(--t1)',
+            }}
+          >
+            <div className="flex items-center gap-1.5 font-semibold mb-1.5" style={{ color: 'var(--yel)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Modo Desenvolvimento — Backend indisponível
+            </div>
+            <p className="text-[var(--t2)]">
+              O backend não está rodando em <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)' }}>localhost:3000</code>.
+              Credenciais de teste serão aceitas automaticamente.
+            </p>
+            <p className="mt-1.5 text-[var(--t3)]">
+              Use qualquer email/senha para entrar. Para desativar, adicione{' '}
+              <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--s3)' }}>VITE_MOCK_AUTH=false</code> no .env
+              ou inicie o backend.
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === 'register' && (
             <div>
-              <label className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Nome</label>
+              <label htmlFor="name" className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Nome</label>
               <input
+                id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -98,8 +138,9 @@ export function LoginPage() {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Email</label>
+            <label htmlFor="email" className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -114,8 +155,9 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Senha</label>
+            <label htmlFor="password" className="block text-xs font-semibold text-[var(--t2)] mb-1.5">Senha</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
