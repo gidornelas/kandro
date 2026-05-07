@@ -21,8 +21,8 @@ export default fp(async function prismaPlugin(fastify: FastifyInstance) {
   if (process.env.NODE_ENV !== "test") {
     const [schemaState] = await prisma.$queryRaw<{ refresh_tokens: string | null; users: string | null }[]>`
       SELECT
-        to_regclass('public.users') AS users,
-        to_regclass('public.refresh_tokens') AS refresh_tokens
+        to_regclass('public.users')::text AS users,
+        to_regclass('public.refresh_tokens')::text AS refresh_tokens
     `;
 
     if (!schemaState?.users || !schemaState?.refresh_tokens) {
