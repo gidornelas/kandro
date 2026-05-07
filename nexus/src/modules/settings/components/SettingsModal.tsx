@@ -1,8 +1,12 @@
 import React from 'react'
+import { AppIcon } from '../../../design-system/AppIcon'
 import { Button } from '../../../design-system/Button'
 import { ConfirmDialog } from '../../../design-system/ConfirmDialog'
+import { Input } from '../../../design-system/Input'
 import { Modal } from '../../../design-system/Modal'
 import { useAppDataStore } from '../../app-data/store'
+import { useAuthStore } from '../../auth/store'
+import * as WorkspacesApi from '../../workspaces/api'
 import { resolveMemberPermission } from '../../permissions/utils'
 import { useSettingsStore } from '../store'
 import type { PermissionAction, ResourceType, Team, TeamPermission } from '../../../shared/types/domain'
@@ -353,6 +357,348 @@ function groupResourcesByType(resources: ResourceCatalogItem[]) {
       integration: [],
       announcement: [],
     },
+  )
+}
+
+function MemberSettingsPanel() {
+  const workspaces = useAppDataStore((s) => s.workspaces)
+  const activeWorkspaceId = useAppDataStore((s) => s.activeWorkspaceId)
+  const workspaceMembers = useAppDataStore((s) => s.workspaceMembers)
+  const addWorkspaceMember = useAppDataStore((s) => s.addWorkspaceMember)
+  const removeWorkspaceMember = useAppDataStore((s) => s.removeWorkspaceMember)
+  const error = useAppDataStore((s) => s.error)
+  const currentUserId = useAuthStore((s) => s.user?.id ?? null)
+  const [query, setQuery] = React.useState('')
+  const [role, setRole] = React.useState<'member' | 'admin'>('member')
+  const [searchResults, setSearchResults] = React.useState<WorkspacesApi.WorkspaceMemberCandidate[]>([])
+  const [searchError, setSearchError] = React.useState<string | null>(null)
+  const [isSearching, setIsSearching] = React.useState(false)
+  const [pendingEmail, setPendingEmail] = React.useState<string | null>(null)
+  const [memberToRemove, setMemberToRemove] = React.useState<WorkspacesApi.WorkspaceMember | null>(null)
+  const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaces[0] ?? null
+  const sortedMembers = [...workspaceMembers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+
+  React.useEffect(() => {
+    if (!activeWorkspaceId || query.trim().length < 2) return
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      setIsSearching(true)
+      void WorkspacesApi.searchMemberCandidates(activeWorkspaceId, query.trim())
+        .then((results) => {
+          if (cancelled) return
+          setSearchResults(results)
+          setSearchError(null)
+        })
+        .catch((err) => {
+          if (cancelled) return
+          setSearchResults([])
+          setSearchError(err instanceof Error ? err.message : 'Erro ao buscar pessoas')
+        })
+        .finally(() => {
+          if (!cancelled) setIsSearching(false)
+        })
+    }, 220)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [activeWorkspaceId, query])
+
+  const handleAddMember = async (candidate: WorkspacesApi.WorkspaceMemberCandidate) => {
+    setPendingEmail(candidate.email)
+    const createdMember = await addWorkspaceMember({ email: candidate.email, role })
+    setPendingEmail(null)
+    if (!createdMember) return
+    setQuery('')
+    setSearchResults((results) => results.filter((result) => result.id !== candidate.id))
+    setSearchError(null)
+  }
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return
+    await removeWorkspaceMember(memberToRemove.userId)
+    setMemberToRemove(null)
+  }
+
+  if (!activeWorkspace) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '280px', color: 'var(--color-text-tertiary)' }}>
+        Nenhum workspace ativo para gerenciar membros.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '6px' }}>Membros do workspace</h3>
+        <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', lineHeight: 1.5 }}>
+          Encontre pessoas pelo email ou pelo nome atual do perfil. Por enquanto, o “nick” do app usa esse nome exibido.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+        <section
+          style={{
+            padding: '16px',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border-subtle)',
+            background: 'var(--color-surface-elevated)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Adicionar ao {activeWorkspace.name}</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>Busque alguém que já tenha conta no Kandro e escolha o papel inicial.</span>
+          </div>
+
+          <Input
+            label="Buscar por email ou nick"
+            value={query}
+            onChange={(event) => {
+              const nextQuery = event.target.value
+              setQuery(nextQuery)
+              if (nextQuery.trim().length >= 2) return
+              setSearchResults([])
+              setSearchError(null)
+              setIsSearching(false)
+            }}
+            placeholder="Ex.: ana@empresa.com ou Ana Lima"
+            helperText="Digite pelo menos 2 caracteres para buscar."
+          />
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Papel inicial</span>
+            <select
+              value={role}
+              onChange={(event) => setRole(event.target.value as 'member' | 'admin')}
+              style={{
+                ...TEXT_FIELD_STYLE,
+                padding: '0 12px',
+              }}
+            >
+              <option value="member">Membro</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '180px' }}>
+            {query.trim().length < 2 && (
+              <div
+                style={{
+                  minHeight: '180px',
+                  borderRadius: '14px',
+                  border: '1px dashed var(--color-border-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
+                  color: 'var(--color-text-tertiary)',
+                  fontSize: '12px',
+                }}
+              >
+                A busca funciona com email completo, parcial ou pelo nome visível da pessoa.
+              </div>
+            )}
+
+            {query.trim().length >= 2 && isSearching && (
+              <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>Buscando pessoas…</div>
+            )}
+
+            {query.trim().length >= 2 && !isSearching && searchError && (
+              <div style={{ fontSize: '12px', color: 'var(--color-danger)' }}>{searchError}</div>
+            )}
+
+            {query.trim().length >= 2 && !isSearching && !searchError && searchResults.length === 0 && (
+              <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>Nenhuma pessoa encontrada com esse email ou nick.</div>
+            )}
+
+            {searchResults.map((candidate) => (
+              <article
+                key={candidate.id}
+                style={{
+                  padding: '12px',
+                  borderRadius: '14px',
+                  border: '1px solid var(--color-border-subtle)',
+                  background: 'var(--color-surface-strong)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <span
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      background: candidate.color,
+                      color: '#fff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {candidate.initials}
+                  </span>
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{candidate.name}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{candidate.email}</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<AppIcon name="plus" size={14} />}
+                  loading={pendingEmail === candidate.email}
+                  onClick={() => void handleAddMember(candidate)}
+                >
+                  Adicionar
+                </Button>
+              </article>
+            ))}
+          </div>
+
+          {error && <span style={{ fontSize: '12px', color: 'var(--color-danger)' }}>{error}</span>}
+        </section>
+
+        <section
+          style={{
+            padding: '16px',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border-subtle)',
+            background: 'var(--color-surface-elevated)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Membros atuais</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>{sortedMembers.length} pessoa(s) neste workspace</span>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>Admins e owners podem gerenciar entradas.</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+            {sortedMembers.map((member) => {
+              const removable = member.userId !== currentUserId && member.role !== 'owner'
+              return (
+                <article
+                  key={member.id}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--color-border-subtle)',
+                    background: 'var(--color-surface-strong)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '50%',
+                        background: member.color,
+                        color: '#fff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {member.initials}
+                    </span>
+                    <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{member.name}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.email}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    <span
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '999px',
+                        background: 'var(--color-accent-soft)',
+                        border: '1px solid var(--color-accent-border)',
+                        color: 'var(--color-accent)',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {member.role === 'owner' ? 'Owner' : member.role === 'admin' ? 'Admin' : 'Membro'}
+                    </span>
+                    <span
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '999px',
+                        background: 'rgba(255,255,255,.72)',
+                        border: '1px solid var(--color-border-subtle)',
+                        color: 'var(--color-text-secondary)',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {member.status}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                      Entrou em {new Date(member.joinedAt).toLocaleDateString('pt-BR')}
+                    </span>
+                    {removable ? (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        leftIcon={<AppIcon name="trash" size={14} />}
+                        onClick={() => setMemberToRemove(member)}
+                      >
+                        Remover
+                      </Button>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                        {member.role === 'owner' ? 'Owner protegido' : 'Você'}
+                      </span>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      </div>
+
+      <ConfirmDialog
+        open={Boolean(memberToRemove)}
+        onOpenChange={(open) => {
+          if (!open) setMemberToRemove(null)
+        }}
+        title={memberToRemove ? `Remover ${memberToRemove.name} do workspace?` : 'Remover membro?'}
+        description={memberToRemove ? `${memberToRemove.name} perderá acesso aos canais, boards e arquivos deste workspace.` : ''}
+        confirmLabel="Remover membro"
+        variant="danger"
+        onConfirm={handleRemoveMember}
+      />
+    </div>
   )
 }
 
@@ -833,11 +1179,13 @@ export function SettingsModal() {
         <aside style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <SectionButton section="appearance" label="Aparência" />
           <SectionButton section="voice-video" label="Voz e vídeo" />
+          <SectionButton section="members" label="Membros" />
           <SectionButton section="teams" label="Equipes" />
         </aside>
         <div style={{ flex: 1, minWidth: 0 }}>
           {activeSection === 'appearance' && <AppearanceSettingsPanel />}
           {activeSection === 'voice-video' && <VoiceVideoSettingsPanel />}
+          {activeSection === 'members' && <MemberSettingsPanel />}
           {activeSection === 'teams' && <TeamSettingsPanel />}
         </div>
       </div>

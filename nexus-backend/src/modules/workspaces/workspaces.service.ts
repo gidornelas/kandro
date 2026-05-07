@@ -1,6 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
 import { ForbiddenError, NotFoundError, ConflictError } from "../../lib/errors.js";
-import type { CreateWorkspaceInput, UpdateWorkspaceInput, AddMemberInput } from "./workspaces.schema.js";
+import type {
+  CreateWorkspaceInput,
+  UpdateWorkspaceInput,
+  AddMemberInput,
+  SearchMemberCandidatesInput,
+} from "./workspaces.schema.js";
 
 export function createWorkspaceService(prisma: PrismaClient) {
   async function list(userId: string) {
@@ -105,7 +110,10 @@ export function createWorkspaceService(prisma: PrismaClient) {
       userId: member.userId,
       name: member.user.name,
       email: member.user.email,
+      initials: member.user.initials,
+      color: member.user.color,
       role: member.role,
+      status: member.user.status,
       joinedAt: member.joinedAt,
     };
   }
@@ -122,8 +130,54 @@ export function createWorkspaceService(prisma: PrismaClient) {
       },
     });
     if (!member) throw new NotFoundError("Membro");
+    if (member.role === "owner") {
+      throw new ForbiddenError("Owner não pode ser removido do workspace");
+    }
 
+    await prisma.teamMember.deleteMany({
+      where: {
+        userId: targetUserId,
+        team: { workspaceId },
+      },
+    });
     await prisma.workspaceMember.delete({ where: { id: member.id } });
+  }
+
+  async function searchMemberCandidates(
+    workspaceId: string,
+    query: SearchMemberCandidatesInput,
+    userId: string
+  ) {
+    await checkRole(prisma, workspaceId, userId, "admin");
+
+    const existingMemberIds = (
+      await prisma.workspaceMember.findMany({
+        where: { workspaceId },
+        select: { userId: true },
+      })
+    ).map((member) => member.userId);
+
+    const candidates = await prisma.user.findMany({
+      where: {
+        id: { notIn: existingMemberIds },
+        OR: [
+          { email: { contains: query.q, mode: "insensitive" } },
+          { name: { contains: query.q, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        initials: true,
+        color: true,
+        status: true,
+      },
+      take: 8,
+      orderBy: { name: "asc" },
+    });
+
+    return candidates;
   }
 
   async function listMembers(workspaceId: string, userId: string) {
@@ -154,6 +208,7 @@ export function createWorkspaceService(prisma: PrismaClient) {
     remove,
     addMember,
     removeMember,
+    searchMemberCandidates,
     listMembers,
   };
 }

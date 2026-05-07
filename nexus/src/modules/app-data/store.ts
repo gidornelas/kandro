@@ -29,6 +29,7 @@ interface ProjectResponse extends Omit<Project, 'channelId' | 'memberIds'> {
 interface AppDataState {
   workspaces: Workspace[]
   activeWorkspaceId: string | null
+  workspaceMembers: WorkspacesApi.WorkspaceMember[]
   channels: Channel[]
   projects: Project[]
   teams: Team[]
@@ -40,6 +41,8 @@ interface AppDataState {
   setActiveWorkspace: (workspaceId: string) => Promise<void>
   createChannel: (data: { name: string; type: 'text' | 'board' | 'voice'; description?: string; private?: boolean }) => Promise<Channel | null>
   createProject: (data: { name: string; description?: string; private?: boolean }) => Promise<Channel | null>
+  addWorkspaceMember: (data: { email: string; role: 'member' | 'admin' }) => Promise<WorkspacesApi.WorkspaceMember | null>
+  removeWorkspaceMember: (userId: string) => Promise<void>
   createTeam: (data: { name: string; color: string }) => Promise<void>
   updateTeam: (teamId: string, updates: { name?: string; color?: string }) => Promise<void>
   removeTeam: (teamId: string) => Promise<void>
@@ -81,6 +84,17 @@ function toDm(room: DmsApi.DmRoom, currentUserId: string): DirectMessage {
     userId: otherUser.id,
     unread: room.unread ?? 0,
     messages: [],
+  }
+}
+
+function toUser(member: WorkspacesApi.WorkspaceMember): User {
+  return {
+    id: member.userId,
+    name: member.name,
+    initials: member.initials,
+    color: member.color,
+    role: member.role,
+    status: member.status as User['status'],
   }
 }
 
@@ -170,6 +184,7 @@ function applyMockAppData() {
   return {
     workspaces: [mockWorkspace],
     activeWorkspaceId: mockWorkspace.id,
+    workspaceMembers: [],
     channels: CHANNELS,
     projects: normalizeProjects(PROJECTS, CHANNELS),
     teams: TEAMS,
@@ -193,6 +208,7 @@ function createLocalWorkspace(user: User | null): Workspace {
 export const useAppDataStore = create<AppDataState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
+  workspaceMembers: [],
   channels: [],
   projects: [],
   teams: [],
@@ -234,17 +250,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         DmsApi.listRooms(),
       ])
       const users = Object.fromEntries(
-        members.map((member) => [
-          member.userId,
-          {
-            id: member.userId,
-            name: member.name,
-            initials: member.initials,
-            color: member.color,
-            role: member.role,
-            status: member.status as User['status'],
-          },
-        ]),
+        members.map((member) => [member.userId, toUser(member)]),
       )
       for (const room of dms) {
         users[room.userA.id] = {
@@ -283,6 +289,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       )
       set({
         channels: mappedChannels,
+        workspaceMembers: members,
         projects: mappedProjects,
         teams: teams.map(toTeam),
         users,
@@ -309,6 +316,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         set({
           workspaces: [...get().workspaces, createdWorkspace],
           activeWorkspaceId: createdWorkspace.id,
+          workspaceMembers: [],
           error: null,
         })
         workspaceId = createdWorkspace.id
@@ -323,6 +331,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
           set({
             workspaces: [...get().workspaces, createdWorkspace],
             activeWorkspaceId: createdWorkspace.id,
+            workspaceMembers: [],
             error: null,
           })
           await get().setActiveWorkspace(createdWorkspace.id)
@@ -373,6 +382,65 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       description: data.description ?? `Board do projeto ${data.name}`,
       private: data.private,
     }),
+
+  addWorkspaceMember: async (data) => {
+    const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
+    if (!workspaceId) {
+      set({ error: 'Nenhum workspace ativo para adicionar membro' })
+      return null
+    }
+    if (useAuthStore.getState().isMockMode) {
+      set({ error: 'Convites no modo mock ainda não foram implementados' })
+      return null
+    }
+
+    try {
+      const member = await WorkspacesApi.addMember(workspaceId, data)
+      set({
+        workspaceMembers: [...get().workspaceMembers, member].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+        users: {
+          ...get().users,
+          [member.userId]: toUser(member),
+        },
+        error: null,
+      })
+      return member
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao adicionar membro'
+      set({ error: message })
+      return null
+    }
+  },
+
+  removeWorkspaceMember: async (userId) => {
+    const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
+    if (!workspaceId) {
+      set({ error: 'Nenhum workspace ativo para remover membro' })
+      return
+    }
+    if (useAuthStore.getState().isMockMode) {
+      set({ error: 'Remoção de membros no modo mock ainda não foi implementada' })
+      return
+    }
+
+    const previousMembers = get().workspaceMembers
+    const previousTeams = get().teams
+    set({
+      workspaceMembers: previousMembers.filter((member) => member.userId !== userId),
+      teams: previousTeams.map((team) => ({
+        ...team,
+        memberIds: team.memberIds.filter((memberId) => memberId !== userId),
+      })),
+      error: null,
+    })
+
+    try {
+      await WorkspacesApi.removeMember(workspaceId, userId)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover membro'
+      set({ workspaceMembers: previousMembers, teams: previousTeams, error: message })
+    }
+  },
 
   createTeam: async (data) => {
     const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null

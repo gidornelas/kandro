@@ -5,7 +5,7 @@ import {
   createWorkspaceSchema,
   updateWorkspaceSchema,
   addMemberSchema,
-  updateMemberRoleSchema,
+  searchMemberCandidatesSchema,
 } from "./workspaces.schema.js";
 
 export async function workspaceRoutes(fastify: FastifyInstance) {
@@ -93,6 +93,17 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { workspaceId } = request.params as { workspaceId: string };
       return wsService.listMembers(workspaceId, request.user.sub);
+    }
+  );
+
+  // GET /api/workspaces/:workspaceId/member-candidates?q=...
+  fastify.get(
+    "/api/workspaces/:workspaceId/member-candidates",
+    { preHandler: [authenticate] },
+    async (request) => {
+      const { workspaceId } = request.params as { workspaceId: string };
+      const query = searchMemberCandidatesSchema.parse(request.query);
+      return wsService.searchMemberCandidates(workspaceId, query, request.user.sub);
     }
   );
 

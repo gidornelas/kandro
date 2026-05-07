@@ -17,6 +17,10 @@ export const addMemberSchema = z.object({
   role: z.enum(["member", "admin"]).default("member"),
 });
 
+export const searchMemberCandidatesSchema = z.object({
+  q: z.string().trim().min(1).max(120),
+});
+
 export const updateMemberRoleSchema = z.object({
   role: z.enum(["member", "admin", "owner"]),
 });
@@ -24,3 +28,4 @@ export const updateMemberRoleSchema = z.object({
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
+export type SearchMemberCandidatesInput = z.infer<typeof searchMemberCandidatesSchema>;

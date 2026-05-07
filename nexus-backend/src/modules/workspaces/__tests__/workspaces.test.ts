@@ -3,15 +3,20 @@ import { createWorkspaceService } from "../workspaces.service.js";
 
 function createMockPrisma() {
   const mockCreate = vi.fn();
-  const mockFindMany = vi.fn();
-  const mockFindUnique = vi.fn();
+  const mockDelete = vi.fn();
+  const mockWorkspaceFindMany = vi.fn();
+  const mockWorkspaceMemberFindMany = vi.fn();
+  const mockWorkspaceMemberFindUnique = vi.fn();
+  const mockUserFindMany = vi.fn();
+  const mockUserFindUnique = vi.fn();
   const mockTransaction = vi.fn();
 
   return {
-    workspace: { create: mockCreate, findMany: mockFindMany },
-    workspaceMember: { findUnique: mockFindUnique, findMany: mockFindMany },
+    workspace: { create: mockCreate, findMany: mockWorkspaceFindMany },
+    workspaceMember: { findUnique: mockWorkspaceMemberFindUnique, findMany: mockWorkspaceMemberFindMany, delete: mockDelete },
     channel: { create: mockCreate },
-    user: { findUnique: mockFindUnique },
+    teamMember: { deleteMany: mockDelete },
+    user: { findUnique: mockUserFindUnique, findMany: mockUserFindMany },
     $transaction: mockTransaction,
   } as any;
 }
@@ -139,5 +144,78 @@ describe("workspace service", () => {
         role: "owner",
       }),
     ]);
+  });
+
+  it("searches member candidates by email or display name and excludes existing members", async () => {
+    const prisma = createMockPrisma();
+    const service = createWorkspaceService(prisma as any);
+
+    prisma.workspaceMember.findUnique.mockResolvedValue({
+      workspaceId: "ws-1",
+      userId: "admin-1",
+      role: "admin",
+    });
+    prisma.workspaceMember.findMany.mockResolvedValueOnce([{ userId: "user-1" }]);
+    prisma.user.findMany.mockResolvedValue([
+      {
+        id: "user-2",
+        name: "Ana Lima",
+        email: "ana@example.com",
+        initials: "AL",
+        color: "#2f80ed",
+        status: "online",
+      },
+    ]);
+
+    const result = await service.searchMemberCandidates("ws-1", { q: "ana" }, "admin-1");
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { notIn: ["user-1"] },
+        OR: [
+          { email: { contains: "ana", mode: "insensitive" } },
+          { name: { contains: "ana", mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        initials: true,
+        color: true,
+        status: true,
+      },
+      take: 8,
+      orderBy: { name: "asc" },
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: "user-2",
+        email: "ana@example.com",
+      }),
+    ]);
+  });
+
+  it("prevents removing the workspace owner", async () => {
+    const prisma = createMockPrisma();
+    const service = createWorkspaceService(prisma as any);
+
+    prisma.workspaceMember.findUnique
+      .mockResolvedValueOnce({
+        workspaceId: "ws-1",
+        userId: "admin-1",
+        role: "admin",
+      })
+      .mockResolvedValueOnce({
+        id: "member-owner",
+        workspaceId: "ws-1",
+        userId: "owner-1",
+        role: "owner",
+      });
+
+    await expect(service.removeMember("ws-1", "owner-1", "admin-1")).rejects.toThrow(
+      "Owner não pode ser removido do workspace"
+    );
+    expect(prisma.workspaceMember.delete).not.toHaveBeenCalled();
   });
 });

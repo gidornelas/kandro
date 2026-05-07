@@ -13,6 +13,15 @@ export interface WorkspaceMember {
   joinedAt: string
 }
 
+export interface WorkspaceMemberCandidate {
+  id: string
+  name: string
+  email: string
+  initials: string
+  color: string
+  status: string
+}
+
 export function list() {
   return apiClient.get<Workspace[]>('/api/workspaces')
 }
@@ -23,4 +32,18 @@ export function create(data: { name: string; initials?: string; color?: string }
 
 export function listMembers(workspaceId: string) {
   return apiClient.get<WorkspaceMember[]>(`/api/workspaces/${workspaceId}/members`)
+}
+
+export function searchMemberCandidates(workspaceId: string, query: string) {
+  return apiClient.get<WorkspaceMemberCandidate[]>(
+    `/api/workspaces/${workspaceId}/member-candidates?q=${encodeURIComponent(query)}`,
+  )
+}
+
+export function addMember(workspaceId: string, data: { email: string; role: 'member' | 'admin' }) {
+  return apiClient.post<WorkspaceMember>(`/api/workspaces/${workspaceId}/members`, data)
+}
+
+export function removeMember(workspaceId: string, userId: string) {
+  return apiClient.delete<void>(`/api/workspaces/${workspaceId}/members/${userId}`)
 }
