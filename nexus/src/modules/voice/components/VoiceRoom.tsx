@@ -15,6 +15,7 @@ import { LayoutScreen } from './LayoutScreen'
 import { LiveKitStage, LiveKitVoiceSync } from './LiveKitStage'
 import { useAuthStore } from '../../auth/store'
 import { useSettingsStore } from '../../settings/store'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 const LayoutMap = {
   voice: LayoutVoice,
@@ -80,7 +81,7 @@ export function VoiceRoom() {
             connectionState === 'error' && error ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
-                  icon="⚠️"
+                  icon={<AppIcon name="warning" size={28} />}
                   title="Não foi possível conectar"
                   description={error}
                   action={channelId ? (
@@ -121,7 +122,7 @@ export function VoiceRoom() {
           ) : error ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <EmptyState
-                icon="⚠️"
+                icon={<AppIcon name="warning" size={28} />}
                 title="Não foi possível conectar"
                 description={error}
                 action={channelId ? (
@@ -133,7 +134,7 @@ export function VoiceRoom() {
             </div>
           ) : participants.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <EmptyState icon="🎙" title="Ninguém na sala" description="Seja o primeiro a entrar na sala de voz." />
+              <EmptyState icon={<AppIcon name="mic" size={28} />} title="Ninguém na sala" description="Seja o primeiro a entrar na sala de voz." />
             </div>
           ) : (
             <ActiveLayout />

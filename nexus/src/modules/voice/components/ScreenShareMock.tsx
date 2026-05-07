@@ -1,4 +1,5 @@
 
+import { AppIcon } from '../../../design-system/AppIcon'
 
 export function ScreenShareMock({ userName }: { userName: string }) {
   return (
@@ -27,7 +28,9 @@ export function ScreenShareMock({ userName }: { userName: string }) {
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: '11px' }}>🖥</span>
+        <span style={{ display: 'inline-flex', color: 'rgba(255,255,255,.72)' }}>
+          <AppIcon name="screen" size={12} />
+        </span>
         <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.72)', fontWeight: 500 }}>
           Tela compartilhada por {userName}
         </span>

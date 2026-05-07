@@ -5,6 +5,7 @@ import { useAppDataStore } from '../../app-data/store'
 import { useAuthStore } from '../../auth/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 const DmMessageItem = React.memo(function DmMessageItem({ msg }: { msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[] } }) {
   const msgUser = useAppDataStore((s) => s.users[msg.userId])
@@ -115,7 +116,7 @@ export function DmView() {
   if (!dm) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <EmptyState icon="✉" title="Selecione uma conversa" description="Escolha um contato na sidebar para começar a conversar." />
+        <EmptyState icon={<AppIcon name="dm" size={28} />} title="Selecione uma conversa" description="Escolha um contato na sidebar para começar a conversar." />
       </div>
     )
   }
@@ -167,7 +168,7 @@ export function DmView() {
         {isLoading ? (
           <Skeleton height={60} count={4} />
         ) : messages.length === 0 ? (
-          <EmptyState icon="💬" title="Nenhuma mensagem ainda" description={`Diga olá para ${user?.name}!`} />
+          <EmptyState icon={<AppIcon name="chat" size={28} />} title="Nenhuma mensagem ainda" description={`Diga olá para ${user?.name}!`} />
         ) : (
           messages.map((msg) => <DmMessageItem key={msg.id} msg={msg} />)
         )}
@@ -225,7 +226,7 @@ export function DmView() {
               transition: 'background .15s',
             }}
           >
-            →
+            <AppIcon name="send" size={14} />
           </button>
         </div>
       </div>

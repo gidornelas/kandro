@@ -6,6 +6,8 @@ import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { useResolvedPermissions } from '../../permissions/hooks'
 import { hasPermissionAction } from '../../permissions/utils'
+import { AppIcon } from '../../../design-system/AppIcon'
+import { getFileIconName } from '../../../design-system/app-icon.utils'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🤔', '👀']
 
@@ -66,7 +68,9 @@ const MessageItem = React.memo(function MessageItem({
               cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: '22px' }}>{msg.attachment.icon}</span>
+            <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>
+              <AppIcon name={getFileIconName(msg.attachment.icon)} size={22} />
+            </span>
             <div>
               <div style={{ fontSize: '12px', fontWeight: 500 }}>{msg.attachment.name}</div>
               <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{msg.attachment.size}</div>
@@ -192,7 +196,7 @@ export function ChatView() {
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {!canViewChannel ? (
           <EmptyState
-            icon="🔒"
+            icon={<AppIcon name="lock" size={28} />}
             title="Canal restrito para você"
             description="Sua equipe ainda não tem permissão de visualização neste canal."
           />
@@ -202,7 +206,7 @@ export function ChatView() {
           </>
         ) : messages.length === 0 ? (
           <EmptyState
-            icon="💬"
+            icon={<AppIcon name="chat" size={28} />}
             title="Nenhuma mensagem ainda"
             description="Seja o primeiro a enviar uma mensagem neste canal."
           />
@@ -265,7 +269,7 @@ export function ChatView() {
               transition: 'background .15s',
             }}
           >
-            →
+            <AppIcon name="send" size={14} />
           </button>
         </div>
       </div>

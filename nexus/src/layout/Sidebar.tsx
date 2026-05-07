@@ -4,6 +4,7 @@ import { useAuthStore } from '../modules/auth/store'
 import { useVoiceStore } from '../modules/voice/store'
 import { useAppDataStore } from '../modules/app-data/store'
 import { hasPermissionAction, resolveMemberPermission } from '../modules/permissions/utils'
+import { AppIcon } from '../design-system/AppIcon'
 
 function StatusDot({ status }: { status?: string }) {
   const color = status === 'online' ? 'var(--color-success)' : status === 'busy' ? 'var(--color-danger)' : status === 'away' ? 'var(--color-warning)' : 'var(--color-text-tertiary)'
@@ -78,7 +79,7 @@ function Section({ id, label, children, action }: { id: string; label: string; c
               marginLeft: '4px',
             }}
           >
-            ▾
+            <AppIcon name="chevronDown" size={12} />
           </span>
         </button>
         {action}
@@ -115,7 +116,7 @@ function SectionActionButton({ label, onClick }: { label: string; onClick: (even
         marginRight: '4px',
       }}
     >
-      +
+      <AppIcon name="plus" size={12} />
     </button>
   )
 }
@@ -393,7 +394,9 @@ export function Sidebar({ width }: { width: number }) {
           {workspace?.initials ?? 'N'}
         </div>
         <span style={{ fontSize: '13px', fontWeight: 600, flex: 1 }}>{workspace?.name ?? 'NEXUS'}</span>
-        <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>⌄</span>
+        <span style={{ display: 'inline-flex', color: 'var(--color-text-tertiary)' }}>
+          <AppIcon name="chevronDown" size={12} />
+        </span>
       </div>
 
       {/* Scrollable content */}
@@ -419,7 +422,7 @@ export function Sidebar({ width }: { width: number }) {
           {projectChannels.map((ch) => (
             <SidebarItem
               key={ch.id}
-              icon="◈"
+              icon={<AppIcon name="project" size={15} />}
               label={ch.name}
               active={mainMode === 'project' && activeProjectId === ch.id}
               onClick={() => openProject(ch.id)}
@@ -448,7 +451,7 @@ export function Sidebar({ width }: { width: number }) {
           {textChannels.map((ch) => (
             <SidebarItem
               key={ch.id}
-              icon="#"
+              icon={<AppIcon name="channel" size={15} />}
               label={ch.name}
               badge={ch.badge}
               active={mainMode === 'channel' && activeChannelId === ch.id}
@@ -478,7 +481,7 @@ export function Sidebar({ width }: { width: number }) {
           {voiceChannels.map((ch) => (
             <div key={ch.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <SidebarItem
-                icon="🔊"
+                icon={<AppIcon name="voice" size={15} />}
                 label={ch.name}
                 badge={voiceChannelId === ch.id ? activeVoiceParticipantIds.length || undefined : undefined}
                 active={mainMode === 'voice' && activeChannelId === ch.id}
@@ -538,7 +541,15 @@ export function Sidebar({ width }: { width: number }) {
                           {isCurrentUser ? ' (você)' : ''}
                         </span>
                         <span style={{ fontSize: '11px', opacity: 0.78, flexShrink: 0 }}>
-                          {participant.sharing ? '🖥' : participant.cameraOn ? '📹' : participant.muted ? '🔇' : '🎙'}
+                          {participant.sharing ? (
+                            <AppIcon name="screen" size={14} />
+                          ) : participant.cameraOn ? (
+                            <AppIcon name="camera" size={14} />
+                          ) : participant.muted ? (
+                            <AppIcon name="micOff" size={14} />
+                          ) : (
+                            <AppIcon name="mic" size={14} />
+                          )}
                         </span>
                       </div>
                     )
@@ -660,7 +671,7 @@ export function Sidebar({ width }: { width: number }) {
             e.currentTarget.style.color = 'var(--color-text-secondary)'
           }}
         >
-          ↩
+          <AppIcon name="logout" size={16} />
         </button>
       </div>
     </div>

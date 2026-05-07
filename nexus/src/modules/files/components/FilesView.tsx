@@ -4,6 +4,8 @@ import { useFilesStore } from '../store'
 import { useAppDataStore } from '../../app-data/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { AppIcon } from '../../../design-system/AppIcon'
+import { getFileIconName } from '../../../design-system/app-icon.utils'
 
 const FileItem = React.memo(function FileItem({
   file,
@@ -40,7 +42,9 @@ const FileItem = React.memo(function FileItem({
           e.currentTarget.style.background = 'var(--color-surface-elevated)'
         }}
       >
-        <span style={{ fontSize: '22px' }}>{file.icon}</span>
+        <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>
+          <AppIcon name={getFileIconName(file.icon, file.type)} size={22} />
+        </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)' }}>{file.name}</div>
           <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
@@ -96,7 +100,7 @@ const FileItem = React.memo(function FileItem({
               e.currentTarget.style.borderColor = 'var(--color-danger-border)'
             }}
           >
-            🗑
+            <AppIcon name="trash" size={14} />
           </button>
         )}
       </div>
@@ -170,14 +174,17 @@ export function FilesView({ canView = true, canManage = true }: { canView?: bool
             cursor: canManage ? 'pointer' : 'default',
           }}
         >
-          + Upload
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <AppIcon name="upload" size={14} />
+            Upload
+          </span>
         </button>
         <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileSelect} />
       </div>
 
       <div style={{ flex: 1, padding: '16px 20px', overflowY: 'auto' }}>
         {!canView ? (
-          <EmptyState icon="🔒" title="Arquivos restritos" description="Sua equipe ainda não pode visualizar os arquivos deste projeto." />
+          <EmptyState icon={<AppIcon name="lock" size={28} />} title="Arquivos restritos" description="Sua equipe ainda não pode visualizar os arquivos deste projeto." />
         ) : uploading ? (
           <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'var(--color-accent-soft)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-accent)' }}>
             Uploading...
@@ -187,7 +194,7 @@ export function FilesView({ canView = true, canManage = true }: { canView?: bool
             <Skeleton height={50} count={6} />
           </div>
         ) : items.length === 0 ? (
-          <EmptyState icon="📁" title="Nenhum arquivo" description="Esta pasta está vazia. Use o botão Upload para adicionar arquivos." />
+          <EmptyState icon={<AppIcon name="folder" size={28} />} title="Nenhum arquivo" description="Esta pasta está vazia. Use o botão Upload para adicionar arquivos." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {items.map((file) => (

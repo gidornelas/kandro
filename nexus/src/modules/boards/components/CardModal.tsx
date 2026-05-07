@@ -4,6 +4,8 @@ import { Modal } from '../../../design-system/Modal'
 import { useBoardStore } from '../store'
 import { useAppDataStore } from '../../app-data/store'
 import { RichTextEditor } from './RichTextEditor'
+import { AppIcon } from '../../../design-system/AppIcon'
+import { getFileIconName } from '../../../design-system/app-icon.utils'
 
 const PRIORITIES = [
   { label: 'Baixa', color: '#8e8e93' },
@@ -13,10 +15,10 @@ const PRIORITIES = [
 
 let subtaskId = 0
 
-function SectionTitle({ icon, label }: { icon: string; label: string }) {
+function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-      <span style={{ fontSize: '14px' }}>{icon}</span>
+      <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>{icon}</span>
       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{label}</span>
     </div>
   )
@@ -188,13 +190,13 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
 
           {/* Description */}
           <div>
-            <SectionTitle icon="📝" label="Descrição" />
+            <SectionTitle icon={<AppIcon name="description" size={16} />} label="Descrição" />
             <RichTextEditor value={description} onChange={setDescription} readOnly={readOnly} />
           </div>
 
           {/* Checklist */}
           <div>
-            <SectionTitle icon="✅" label={`Checklist ${completedSubtasks}/${subtasks.length}`} />
+            <SectionTitle icon={<AppIcon name="checklist" size={16} />} label={`Checklist ${completedSubtasks}/${subtasks.length}`} />
             {subtasks.length > 0 && (
               <div style={{ marginBottom: '10px' }}>
                 <div style={{ height: '6px', background: 'rgba(255,255,255,.5)', borderRadius: '999px', overflow: 'hidden', marginBottom: '10px' }}>
@@ -312,7 +314,7 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
 
           {/* Comments / Discussion */}
           <div>
-            <SectionTitle icon="💬" label={`Atividade ${cardComments.length > 0 ? `(${cardComments.length})` : ''}`} />
+            <SectionTitle icon={<AppIcon name="activity" size={16} />} label={`Atividade ${cardComments.length > 0 ? `(${cardComments.length})` : ''}`} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {cardComments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
@@ -476,7 +478,10 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
                   opacity: readOnly ? 0.5 : 1,
                 }}
               >
-                💾 Salvar
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <AppIcon name="save" size={14} color="#fff" />
+                  Salvar
+                </span>
               </button>
               {!readOnly && (
                 <button
@@ -495,7 +500,10 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
                     textAlign: 'left',
                   }}
                 >
-                  🗑 Excluir
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <AppIcon name="trash" size={14} />
+                    Excluir
+                  </span>
                 </button>
               )}
             </div>
@@ -656,7 +664,7 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
                   opacity: readOnly ? 0.5 : 1,
                 }}
               >
-                +
+                <AppIcon name="plus" size={12} color="#fff" />
               </button>
             </div>
           </div>
@@ -686,7 +694,10 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
                 opacity: readOnly ? 0.5 : 1,
               }}
             >
-              📎 Anexar arquivo
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <AppIcon name="attachment" size={14} />
+                Anexar arquivo
+              </span>
             </button>
             {files.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -703,7 +714,9 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
                       border: '1px solid var(--color-border-subtle)',
                     }}
                   >
-                    <span style={{ fontSize: '14px' }}>{f.icon}</span>
+                    <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>
+                      <AppIcon name={getFileIconName(f.icon)} size={16} />
+                    </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
                       <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{f.size}</div>

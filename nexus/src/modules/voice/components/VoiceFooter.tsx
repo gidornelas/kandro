@@ -1,5 +1,6 @@
 import { useVoiceStore } from '../store'
 import { fmtDuration } from '../lib/fmtDuration'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 export function VoiceFooter() {
   const micEnabled = useVoiceStore((s) => s.micEnabled)
@@ -37,7 +38,9 @@ export function VoiceFooter() {
           gap: '6px',
         }}
       >
-        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>⏱</span>
+        <span style={{ display: 'inline-flex', color: 'var(--color-text-tertiary)' }}>
+          <AppIcon name="calendar" size={12} />
+        </span>
         <span
           style={{
             fontSize: '13px',
@@ -51,16 +54,16 @@ export function VoiceFooter() {
       </div>
 
       <ControlBtn active={micEnabled} onClick={toggleMic} label="Mic">
-        {micEnabled ? '🎤' : '🔇'}
+        <AppIcon name={micEnabled ? 'mic' : 'micOff'} size={20} />
       </ControlBtn>
       <ControlBtn active={cameraEnabled} onClick={toggleCamera} label="Câmera">
-        {cameraEnabled ? '📹' : '📷'}
+        <AppIcon name={cameraEnabled ? 'camera' : 'cameraOff'} size={20} />
       </ControlBtn>
       <ControlBtn active={screenEnabled} onClick={toggleScreen} label="Tela">
-        🖥
+        <AppIcon name="screen" size={20} />
       </ControlBtn>
       <ControlBtn active={chatOpen} onClick={toggleChat} label="Chat">
-        💬
+        <AppIcon name="chat" size={20} />
       </ControlBtn>
 
       <button
@@ -77,12 +80,12 @@ export function VoiceFooter() {
           fontSize: '13px',
           fontWeight: 600,
           cursor: 'pointer',
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
         }}
       >
-        <span>🔴</span> Sair
+        <AppIcon name="logout" size={16} color="#fff" /> Sair
       </button>
     </div>
   )

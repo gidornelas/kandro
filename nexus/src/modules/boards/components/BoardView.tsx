@@ -14,6 +14,7 @@ import { useAppDataStore } from '../../app-data/store'
 import { useUIStore } from '../../ui/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { AppIcon } from '../../../design-system/AppIcon'
 import { CardModal } from './CardModal'
 import { AddCardInline } from './AddCardInline'
 import { ColumnHeader } from './ColumnHeader'
@@ -412,7 +413,7 @@ export function BoardView() {
       <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 18px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
         {!canViewBoard ? (
           <EmptyState
-            icon="🔒"
+            icon={<AppIcon name="lock" size={28} />}
             title="Board restrito"
             description="Sua equipe ainda não tem permissão para visualizar este projeto."
           />
@@ -429,7 +430,7 @@ export function BoardView() {
           </>
         ) : columns.length === 0 ? (
           <EmptyState
-            icon="📋"
+            icon={<AppIcon name="checklist" size={28} />}
             title="Nenhuma coluna"
             description="Adicione uma coluna para começar a organizar."
           />
@@ -504,7 +505,10 @@ export function BoardView() {
                   onMouseEnter={(e) => { if (canEditBoard) e.currentTarget.style.background = 'rgba(255,255,255,.62)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.32)' }}
                 >
-                  + Nova coluna
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <AppIcon name="plus" size={14} />
+                    Nova coluna
+                  </span>
                 </button>
               )}
             </div>
@@ -539,7 +543,7 @@ export function BoardView() {
     ? (
         <div style={{ flex: 1, display: 'flex' }}>
           <EmptyState
-            icon="🔒"
+            icon={<AppIcon name="lock" size={28} />}
             title="Projeto restrito"
             description="Sua equipe ainda não tem permissão para visualizar este projeto."
           />

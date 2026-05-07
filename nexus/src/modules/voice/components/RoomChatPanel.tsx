@@ -3,6 +3,7 @@ import { useVoiceStore } from '../store'
 import { useAppDataStore } from '../../app-data/store'
 import { useAuthStore } from '../../auth/store'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 export function RoomChatPanel() {
   const chatOpen = useVoiceStore((s) => s.chatOpen)
@@ -40,7 +41,9 @@ export function RoomChatPanel() {
           gap: '8px',
         }}
       >
-        <span style={{ fontSize: '14px' }}>💬</span>
+        <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>
+          <AppIcon name="chat" size={16} />
+        </span>
         <span style={{ fontSize: '13px', fontWeight: 600, flex: 1 }}>Chat da chamada</span>
         <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{messages.length} msgs</span>
       </div>
@@ -48,7 +51,7 @@ export function RoomChatPanel() {
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.length === 0 ? (
-          <EmptyState icon="💬" title="Sem mensagens" description="Envie uma mensagem para a sala." />
+          <EmptyState icon={<AppIcon name="chat" size={28} />} title="Sem mensagens" description="Envie uma mensagem para a sala." />
         ) : (
           messages.map((msg) => {
             const user = users[msg.userId]
@@ -152,7 +155,7 @@ export function RoomChatPanel() {
               flexShrink: 0,
             }}
           >
-            →
+            <AppIcon name="send" size={14} />
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Button } from './Button'
+import { AppIcon } from './AppIcon'
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
@@ -43,7 +44,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: '40px', lineHeight: 1 }}>⚠️</div>
+          <div style={{ lineHeight: 1, color: 'var(--color-warning)', display: 'inline-flex' }}>
+            <AppIcon name="warning" size={40} />
+          </div>
           <div>
             <h2
               style={{

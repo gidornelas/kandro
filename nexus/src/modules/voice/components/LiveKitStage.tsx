@@ -5,6 +5,7 @@ import { ConnectionState as LiveKitConnectionState, RoomEvent, Track, type Parti
 import { useAppDataStore } from '../../app-data/store'
 import { useSettingsStore } from '../../settings/store'
 import { useVoiceStore } from '../store'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 function mapConnectionState(state: LiveKitConnectionState) {
   if (state === LiveKitConnectionState.Connected) return 'connected'
@@ -146,9 +147,9 @@ function ParticipantMediaTile({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          {!participant.isMicrophoneEnabled && <span style={{ fontSize: '12px' }}>🔇</span>}
-          {participant.isCameraEnabled && <span style={{ fontSize: '12px' }}>📹</span>}
-          {participant.isScreenShareEnabled && <span style={{ fontSize: '12px' }}>🖥</span>}
+          {!participant.isMicrophoneEnabled && <AppIcon name="micOff" size={12} color="#fff" />}
+          {participant.isCameraEnabled && <AppIcon name="camera" size={12} color="#fff" />}
+          {participant.isScreenShareEnabled && <AppIcon name="screen" size={12} color="#fff" />}
         </div>
       </div>
     </Component>

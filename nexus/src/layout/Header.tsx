@@ -1,6 +1,8 @@
 import { useUIStore } from '../modules/ui/store'
 import { useAppDataStore } from '../modules/app-data/store'
 import { useSettingsStore } from '../modules/settings/store'
+import { AppIcon } from '../design-system/AppIcon'
+import { getChannelIconName } from '../design-system/app-icon.utils'
 
 export function Header() {
   const mainMode = useUIStore((s) => s.mainMode)
@@ -20,7 +22,7 @@ export function Header() {
   const project = projects.find((item) => item.id === activeProjectId)
 
   const title = channel?.name || (mainMode === 'dm' ? 'Mensagens Diretas' : 'NEXUS')
-  const icon = channel?.icon || (mainMode === 'dm' ? '✉' : '#')
+  const iconName = mainMode === 'dm' ? 'dm' : getChannelIconName(channel?.type)
   const desc = channel?.desc || ''
 
   return (
@@ -38,7 +40,9 @@ export function Header() {
         WebkitBackdropFilter: 'var(--blur-panel)',
       }}
     >
-      <span style={{ fontSize: '16px' }}>{icon}</span>
+      <span style={{ display: 'inline-flex', color: 'var(--color-text-secondary)' }}>
+        <AppIcon name={iconName} size={18} />
+      </span>
       <div
         style={{
           fontSize: '14px',
@@ -99,7 +103,9 @@ export function Header() {
           transition: 'background .18s ease, border-color .18s ease, color .18s ease',
         }}
       >
-        <span aria-hidden="true">⚙️</span>
+        <span aria-hidden="true" style={{ display: 'inline-flex' }}>
+          <AppIcon name="settings" size={16} />
+        </span>
         Configurações
       </button>
     </div>

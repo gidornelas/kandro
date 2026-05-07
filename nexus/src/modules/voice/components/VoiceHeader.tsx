@@ -2,12 +2,14 @@ import { useVoiceStore } from '../store'
 import { fmtDuration } from '../lib/fmtDuration'
 import { useAppDataStore } from '../../app-data/store'
 import { useSettingsStore } from '../../settings/store'
+import { AppIcon } from '../../../design-system/AppIcon'
+import type { AppIconName } from '../../../design-system/app-icon.utils'
 
-const LAYOUTS: { key: 'voice' | 'grid' | 'spotlight' | 'screen'; label: string; icon: string }[] = [
-  { key: 'voice', label: 'Voz', icon: '🎙' },
-  { key: 'grid', label: 'Grid', icon: '⊞' },
-  { key: 'spotlight', label: 'Destaque', icon: '⬡' },
-  { key: 'screen', label: 'Tela', icon: '🖥' },
+const LAYOUTS: { key: 'voice' | 'grid' | 'spotlight' | 'screen'; label: string; icon: AppIconName }[] = [
+  { key: 'voice', label: 'Voz', icon: 'mic' },
+  { key: 'grid', label: 'Grid', icon: 'grid' },
+  { key: 'spotlight', label: 'Destaque', icon: 'spotlight' },
+  { key: 'screen', label: 'Tela', icon: 'screen' },
 ]
 
 export function VoiceHeader() {
@@ -99,7 +101,7 @@ export function VoiceHeader() {
               transition: 'background .15s ease, border-color .15s ease, color .15s ease',
             }}
           >
-            {l.icon}
+            <AppIcon name={l.icon} size={16} />
           </button>
         ))}
       </div>
@@ -125,7 +127,7 @@ export function VoiceHeader() {
           transition: 'background .15s ease, border-color .15s ease, color .15s ease',
         }}
       >
-        💬
+        <AppIcon name="chat" size={16} />
       </button>
 
       <button

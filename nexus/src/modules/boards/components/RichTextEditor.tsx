@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../../../design-system/AppIcon'
 
 function ToolbarBtn({
   cmd,
@@ -10,7 +11,7 @@ function ToolbarBtn({
 }: {
   cmd: string
   arg?: string
-  icon: string
+  icon: React.ReactNode
   label: string
   disabled?: boolean
   onClick: (cmd: string, arg?: string) => void
@@ -84,22 +85,22 @@ export function RichTextEditor({ value, onChange, readOnly = false }: { value: s
           flexWrap: 'wrap',
         }}
       >
-        <ToolbarBtn cmd="bold" icon="B" label="Negrito" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="italic" icon="I" label="Itálico" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="underline" icon="U" label="Sublinhado" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="strikeThrough" icon="S" label="Tachado" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="bold" icon={<AppIcon name="bold" size={14} />} label="Negrito" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="italic" icon={<AppIcon name="italic" size={14} />} label="Itálico" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="underline" icon={<AppIcon name="underline" size={14} />} label="Sublinhado" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="strikeThrough" icon={<AppIcon name="strike" size={14} />} label="Tachado" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
         <ToolbarBtn cmd="formatBlock" arg="H1" icon="H1" label="Título 1" disabled={readOnly} onClick={exec} />
         <ToolbarBtn cmd="formatBlock" arg="H2" icon="H2" label="Título 2" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="insertUnorderedList" icon="•" label="Lista" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="insertOrderedList" icon="1." label="Lista numerada" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="insertUnorderedList" icon={<AppIcon name="list" size={14} />} label="Lista" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="insertOrderedList" icon={<AppIcon name="numberedList" size={14} />} label="Lista numerada" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="justifyLeft" icon="⬅" label="Alinhar esquerda" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="justifyCenter" icon="↔" label="Centralizar" disabled={readOnly} onClick={exec} />
-        <ToolbarBtn cmd="justifyRight" icon="➡" label="Alinhar direita" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="justifyLeft" icon={<AppIcon name="alignLeft" size={14} />} label="Alinhar esquerda" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="justifyCenter" icon={<AppIcon name="alignCenter" size={14} />} label="Centralizar" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="justifyRight" icon={<AppIcon name="alignRight" size={14} />} label="Alinhar direita" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="removeFormat" icon="✕" label="Limpar formatação" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="removeFormat" icon={<AppIcon name="xmark" size={14} />} label="Limpar formatação" disabled={readOnly} onClick={exec} />
       </div>
 
       {/* Editor */}
