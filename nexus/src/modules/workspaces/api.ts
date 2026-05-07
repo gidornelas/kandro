@@ -17,6 +17,10 @@ export function list() {
   return apiClient.get<Workspace[]>('/api/workspaces')
 }
 
+export function create(data: { name: string; initials?: string; color?: string }) {
+  return apiClient.post<Workspace>('/api/workspaces', data)
+}
+
 export function listMembers(workspaceId: string) {
   return apiClient.get<WorkspaceMember[]>(`/api/workspaces/${workspaceId}/members`)
 }

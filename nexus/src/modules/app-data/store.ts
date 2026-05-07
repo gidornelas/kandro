@@ -180,6 +180,16 @@ function applyMockAppData() {
   }
 }
 
+function createLocalWorkspace(user: User | null): Workspace {
+  const firstName = user?.name.trim().split(' ')[0] || 'Meu'
+  return {
+    id: `workspace-${Date.now()}`,
+    name: `Workspace de ${firstName}`,
+    initials: user?.initials || firstName.slice(0, 2).toUpperCase(),
+    color: user?.color || '#2f80ed',
+  }
+}
+
 export const useAppDataStore = create<AppDataState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
@@ -291,7 +301,39 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   },
 
   createChannel: async (data) => {
-    const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
+    let workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
+    if (!workspaceId) {
+      const currentUser = useAuthStore.getState().user
+      if (useAuthStore.getState().isMockMode) {
+        const createdWorkspace = createLocalWorkspace(currentUser)
+        set({
+          workspaces: [...get().workspaces, createdWorkspace],
+          activeWorkspaceId: createdWorkspace.id,
+          error: null,
+        })
+        workspaceId = createdWorkspace.id
+      } else {
+        try {
+          const firstName = currentUser?.name.trim().split(' ')[0] || 'Meu'
+          const createdWorkspace = await WorkspacesApi.create({
+            name: `Workspace de ${firstName}`,
+            initials: currentUser?.initials || firstName.slice(0, 2).toUpperCase(),
+            color: currentUser?.color || '#2f80ed',
+          })
+          set({
+            workspaces: [...get().workspaces, createdWorkspace],
+            activeWorkspaceId: createdWorkspace.id,
+            error: null,
+          })
+          await get().setActiveWorkspace(createdWorkspace.id)
+          workspaceId = createdWorkspace.id
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Erro ao criar workspace'
+          set({ error: message })
+          return null
+        }
+      }
+    }
     if (!workspaceId) {
       set({ error: 'Nenhum workspace ativo para criar canal' })
       return null
@@ -333,7 +375,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
     }),
 
   createTeam: async (data) => {
-    const workspaceId = get().activeWorkspaceId
+    const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
     if (!workspaceId) {
       set({ error: 'Nenhum workspace ativo para criar equipe' })
       return
