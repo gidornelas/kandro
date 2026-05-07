@@ -8,10 +8,14 @@ export function createWorkspaceService(prisma: PrismaClient) {
       where: { userId },
       include: { workspace: true },
     });
-    return memberships.map((m) => ({
-      ...m.workspace,
-      role: m.role,
-    }));
+    if (memberships.length > 0) {
+      return memberships.map((m) => ({
+        ...m.workspace,
+        role: m.role,
+      }));
+    }
+
+    return [await bootstrapWorkspace(prisma, userId)];
   }
 
   async function getById(workspaceId: string, userId: string) {
@@ -151,6 +155,47 @@ export function createWorkspaceService(prisma: PrismaClient) {
     addMember,
     removeMember,
     listMembers,
+  };
+}
+
+async function bootstrapWorkspace(prisma: PrismaClient, userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+  if (!user) throw new NotFoundError("Usuário");
+
+  const firstName = user.name.trim().split(" ")[0] || "Meu";
+  const workspace = await prisma.$transaction(async (tx) => {
+    const createdWorkspace = await tx.workspace.create({
+      data: {
+        name: `Workspace de ${firstName}`,
+        initials: user.initials || firstName.slice(0, 2).toUpperCase(),
+        color: user.color || "#7c6af7",
+        members: {
+          create: {
+            userId,
+            role: "owner",
+          },
+        },
+      },
+    });
+
+    await tx.channel.create({
+      data: {
+        workspaceId: createdWorkspace.id,
+        name: "geral",
+        icon: "#",
+        type: "text",
+        description: "Canal principal do workspace",
+      },
+    });
+
+    return createdWorkspace;
+  });
+
+  return {
+    ...workspace,
+    role: "owner",
   };
 }
 

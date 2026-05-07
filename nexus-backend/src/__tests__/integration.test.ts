@@ -120,7 +120,7 @@ describe("Workspace & Channel Flow", () => {
     expect(wsRes.statusCode).toBe(200);
     const workspaces = wsRes.json();
     expect(Array.isArray(workspaces)).toBe(true);
-    if (workspaces.length === 0) return;
+    expect(workspaces.length).toBeGreaterThan(0);
 
     workspaceId = workspaces[0].id;
 
@@ -136,6 +136,7 @@ describe("Workspace & Channel Flow", () => {
     expect(Array.isArray(channels)).toBe(true);
 
     const textChannel = channels.find((c: { type: string }) => c.type === "text");
+    expect(textChannel).toBeDefined();
     if (textChannel) {
       channelId = textChannel.id;
     }
