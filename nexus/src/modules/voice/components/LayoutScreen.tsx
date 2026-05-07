@@ -1,5 +1,5 @@
 import { useVoiceStore } from '../store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
 import { VoiceTile } from './VoiceTile'
 import { ScreenShareMock } from './ScreenShareMock'
 
@@ -8,17 +8,16 @@ export function LayoutScreen() {
   const screenSharerId = useVoiceStore((s) => s.screenSharerId)
   const setScreenSharer = useVoiceStore((s) => s.setScreenSharer)
   const setActiveSpeaker = useVoiceStore((s) => s.setActiveSpeaker)
+  const users = useAppDataStore((s) => s.users)
 
   const sharer = participants.find((p) => p.userId === screenSharerId)
-  const sharerName = sharer ? USERS[sharer.userId]?.name || 'Desconhecido' : 'Desconhecido'
+  const sharerName = sharer ? users[sharer.userId]?.name || 'Desconhecido' : 'Desconhecido'
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      {/* Main screen area */}
       <div style={{ flex: 1, position: 'relative', padding: '12px', minHeight: 0 }}>
         <ScreenShareMock userName={sharerName} />
 
-        {/* Sharer overlay */}
         {sharer && (
           <div
             style={{
@@ -51,7 +50,6 @@ export function LayoutScreen() {
         )}
       </div>
 
-      {/* Bottom thumbnail strip */}
       <div
         style={{
           height: '90px',
@@ -65,27 +63,19 @@ export function LayoutScreen() {
           overflowX: 'auto',
         }}
       >
-        {participants.map((p) => {
-          const isSharer = p.userId === screenSharerId
-          return (
-            <div
-              key={p.userId}
-              onClick={() => {
-                setScreenSharer(p.userId)
-                setActiveSpeaker(p.userId)
-              }}
-              style={{
-                cursor: 'pointer',
-                borderRadius: 'var(--radius-md)',
-                border: isSharer ? '2px solid var(--color-accent)' : '2px solid transparent',
-                transition: 'border-color .15s',
-                flexShrink: 0,
-              }}
-            >
-              <VoiceTile participant={p} size="sm" showWaveform={false} />
-            </div>
-          )
-        })}
+        {participants.map((p) => (
+          <VoiceTile
+            key={p.userId}
+            participant={p}
+            size="sm"
+            selected={p.userId === screenSharerId}
+            showWaveform={false}
+            onClick={() => {
+              setScreenSharer(p.userId)
+              setActiveSpeaker(p.userId)
+            }}
+          />
+        ))}
       </div>
     </div>
   )

@@ -47,13 +47,13 @@ export function LayoutSpotlight() {
         }}
       >
         {others.map((p) => (
-          <div
+          <VoiceTile
             key={p.userId}
+            participant={p}
+            size="sm"
+            showWaveform={false}
             onClick={() => setActiveSpeaker(p.userId)}
-            style={{ cursor: 'pointer' }}
-          >
-            <VoiceTile participant={p} size="sm" showWaveform={false} />
-          </div>
+          />
         ))}
       </div>
     </div>

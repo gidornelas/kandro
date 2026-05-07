@@ -47,8 +47,8 @@ export interface MoveCardDto {
   position?: number;
 }
 
-export type PermissionLevel = "none" | "view" | "edit";
-export type ResourceType = "channel" | "board" | "folder" | "doc";
+export type PermissionAction = "view" | "post" | "comment" | "edit" | "manage" | "admin";
+export type ResourceType = "channel" | "board" | "folder" | "doc" | "voice_room" | "settings" | "member_list" | "integration" | "announcement";
 
 // ─── Voice ────────────────────────────────────────────────
 

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Spinner } from './Spinner'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -22,9 +23,9 @@ export function Button({
   const isDisabled = disabled || loading
 
   const sizeStyles: Record<string, React.CSSProperties> = {
-    sm: { height: '26px', padding: '0 10px', fontSize: '12px' },
-    md: { height: '30px', padding: '0 14px', fontSize: '13px' },
-    lg: { height: '36px', padding: '0 18px', fontSize: '14px' },
+    sm: { minHeight: '36px', padding: '0 12px', fontSize: '12px' },
+    md: { minHeight: '40px', padding: '0 14px', fontSize: '13px' },
+    lg: { minHeight: '44px', padding: '0 18px', fontSize: '14px' },
   }
 
   const variantStyles: Record<string, React.CSSProperties> = {
@@ -74,9 +75,10 @@ export function Button({
         borderRadius: '10px',
         fontFamily: 'var(--font-body)',
         fontWeight: 500,
+        lineHeight: 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
         opacity: isDisabled ? 0.6 : 1,
-        transition: 'all .18s ease',
+        transition: 'background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease',
         minWidth: '44px',
         ...sizeStyles[size],
         ...variantStyles[variant],
@@ -90,5 +92,3 @@ export function Button({
     </button>
   )
 }
-
-import React from 'react'

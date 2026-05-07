@@ -1,4 +1,5 @@
 import React from 'react'
+import { ConfirmDialog } from '../../../design-system/ConfirmDialog'
 import { Modal } from '../../../design-system/Modal'
 import { useBoardStore } from '../store'
 import { useAppDataStore } from '../../app-data/store'
@@ -21,7 +22,7 @@ function SectionTitle({ icon, label }: { icon: string; label: string }) {
   )
 }
 
-export function CardModal() {
+export function CardModal({ readOnly = false, canComment = true }: { readOnly?: boolean; canComment?: boolean }) {
   const cardId = useBoardStore((s) => s.editingCardId)
   const card = useBoardStore((s) => s.cards.find((c) => c.id === cardId))
   const updateCard = useBoardStore((s) => s.updateCard)
@@ -42,6 +43,7 @@ export function CardModal() {
   const [newComment, setNewComment] = React.useState('')
   const [newSubtask, setNewSubtask] = React.useState('')
   const [newLabel, setNewLabel] = React.useState('')
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   if (!card) return null
@@ -53,6 +55,7 @@ export function CardModal() {
   }
 
   const addSubtask = () => {
+    if (readOnly) return
     const text = newSubtask.trim()
     if (!text) return
     setSubtasks((prev) => [...prev, { id: `st-${++subtaskId}`, text, done: false }])
@@ -64,6 +67,7 @@ export function CardModal() {
   }
 
   const addLabel = () => {
+    if (readOnly) return
     const text = newLabel.trim()
     if (!text || labels.includes(text)) return
     setLabels((prev) => [...prev, text])
@@ -75,6 +79,7 @@ export function CardModal() {
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return
     const uploaded = e.target.files
     if (!uploaded) return
     Array.from(uploaded).forEach((f) => {
@@ -86,6 +91,7 @@ export function CardModal() {
   }
 
   const handleSave = () => {
+    if (readOnly) return
     const doneCount = subtasks.filter((st) => st.done).length
     const total = subtasks.length
     const computedProgress = total > 0 ? Math.round((doneCount / total) * 100) : progress
@@ -109,14 +115,16 @@ export function CardModal() {
   const completedSubtasks = subtasks.filter((s) => s.done).length
 
   return (
-    <Modal open onClose={close} title="" size="xl">
-      <div style={{ display: 'flex', gap: '32px', width: '100%' }}>
+    <>
+      <Modal open onClose={close} title="" size="xl">
+        <div style={{ display: 'flex', gap: '32px', width: '100%' }}>
         {/* Main column */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {/* Title */}
           <input
             type="text"
             value={title}
+            disabled={readOnly}
             onChange={(e) => setTitle(e.target.value)}
             style={{
               width: '100%',
@@ -181,7 +189,7 @@ export function CardModal() {
           {/* Description */}
           <div>
             <SectionTitle icon="📝" label="Descrição" />
-            <RichTextEditor value={description} onChange={setDescription} />
+            <RichTextEditor value={description} onChange={setDescription} readOnly={readOnly} />
           </div>
 
           {/* Checklist */}
@@ -216,14 +224,17 @@ export function CardModal() {
                       }}
                     >
                       <button
-                        onClick={() => toggleSubtask(st.id)}
+                        onClick={() => {
+                          if (readOnly) return
+                          toggleSubtask(st.id)
+                        }}
                         style={{
                           width: '18px',
                           height: '18px',
                           borderRadius: '5px',
                           border: `2px solid ${st.done ? 'var(--color-success)' : 'var(--color-border)'}`,
                           background: st.done ? 'var(--color-success)' : 'transparent',
-                          cursor: 'pointer',
+                          cursor: readOnly ? 'default' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -245,8 +256,12 @@ export function CardModal() {
                         {st.text}
                       </span>
                       <button
-                        onClick={() => removeSubtask(st.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--color-text-tertiary)', padding: '2px' }}
+                        onClick={() => {
+                          if (readOnly) return
+                          removeSubtask(st.id)
+                        }}
+                        disabled={readOnly}
+                        style={{ background: 'none', border: 'none', cursor: readOnly ? 'default' : 'pointer', fontSize: '13px', color: 'var(--color-text-tertiary)', padding: '2px', opacity: readOnly ? 0.45 : 1 }}
                       >
                         ×
                       </button>
@@ -260,6 +275,7 @@ export function CardModal() {
                 type="text"
                 placeholder="Adicionar item..."
                 value={newSubtask}
+                disabled={readOnly}
                 onChange={(e) => setNewSubtask(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') addSubtask() }}
                 style={{
@@ -276,6 +292,7 @@ export function CardModal() {
               />
               <button
                 onClick={addSubtask}
+                disabled={readOnly}
                 style={{
                   padding: '7px 14px',
                   borderRadius: '8px',
@@ -284,7 +301,8 @@ export function CardModal() {
                   border: 'none',
                   fontSize: '12px',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: readOnly ? 'default' : 'pointer',
+                  opacity: readOnly ? 0.5 : 1,
                 }}
               >
                 Adicionar
@@ -367,8 +385,9 @@ export function CardModal() {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <input
                     type="text"
-                    placeholder="Escreva um comentário..."
+                    placeholder={canComment ? 'Escreva um comentário...' : 'Você não pode comentar nesta tarefa'}
                     value={newComment}
+                    disabled={!canComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -397,7 +416,7 @@ export function CardModal() {
                       outline: 'none',
                     }}
                   />
-                  {newComment.trim() && (
+                  {newComment.trim() && canComment && (
                     <button
                       onClick={() => {
                         const text = newComment.trim()
@@ -442,6 +461,7 @@ export function CardModal() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <button
                 onClick={handleSave}
+                disabled={readOnly}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -451,29 +471,33 @@ export function CardModal() {
                   border: 'none',
                   fontSize: '13px',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: readOnly ? 'default' : 'pointer',
                   textAlign: 'left',
+                  opacity: readOnly ? 0.5 : 1,
                 }}
               >
                 💾 Salvar
               </button>
-              <button
-                onClick={() => { if (confirm('Excluir esta tarefa?')) void deleteCard(card.id) }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  background: 'var(--color-danger-soft)',
-                  color: 'var(--color-danger)',
-                  border: '1px solid var(--color-danger-border)',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                🗑 Excluir
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'var(--color-danger-soft)',
+                    color: 'var(--color-danger)',
+                    border: '1px solid var(--color-danger-border)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  🗑 Excluir
+                </button>
+              )}
             </div>
           </div>
 
@@ -488,7 +512,9 @@ export function CardModal() {
                 return (
                   <button
                     key={u.id}
+                    disabled={readOnly}
                     onClick={() => {
+                      if (readOnly) return
                       setAssignees((prev) =>
                         selected ? prev.filter((id) => id !== u.id) : [...prev, u.id]
                       )
@@ -506,7 +532,7 @@ export function CardModal() {
                       fontSize: '10px',
                       fontWeight: 700,
                       color: '#fff',
-                      cursor: 'pointer',
+                      cursor: readOnly ? 'default' : 'pointer',
                       opacity: selected ? 1 : 0.5,
                       transition: 'opacity .15s',
                     }}
@@ -527,17 +553,21 @@ export function CardModal() {
               {PRIORITIES.map((p) => (
                 <button
                   key={p.label}
-                  onClick={() => setPriority(p.label)}
+                  onClick={() => {
+                    if (readOnly) return
+                    setPriority(p.label)
+                  }}
                   style={{
                     padding: '5px 10px',
                     borderRadius: '8px',
                     border: `1px solid ${priority === p.label ? p.color : 'var(--color-border-subtle)'}`,
                     background: priority === p.label ? `${p.color}14` : 'rgba(255,255,255,.52)',
                     fontSize: '12px',
-                    cursor: 'pointer',
+                    cursor: readOnly ? 'default' : 'pointer',
                     color: priority === p.label ? p.color : 'var(--color-text-secondary)',
                     fontWeight: priority === p.label ? 600 : 400,
                     textAlign: 'left',
+                    opacity: readOnly ? 0.6 : 1,
                   }}
                 >
                   {p.label}
@@ -556,6 +586,7 @@ export function CardModal() {
               min={0}
               max={100}
               value={progress}
+              disabled={readOnly}
               onChange={(e) => setProgress(Number(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--color-accent)' }}
             />
@@ -569,6 +600,7 @@ export function CardModal() {
             <input
               type="date"
               value={dueDate}
+              disabled={readOnly}
               onChange={(e) => setDueDate(e.target.value)}
               style={{
                 width: '100%',
@@ -594,6 +626,7 @@ export function CardModal() {
                 type="text"
                 placeholder="Nova etiqueta"
                 value={newLabel}
+                disabled={readOnly}
                 onChange={(e) => setNewLabel(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') addLabel() }}
                 style={{
@@ -610,6 +643,7 @@ export function CardModal() {
               />
               <button
                 onClick={addLabel}
+                disabled={readOnly}
                 style={{
                   padding: '5px 8px',
                   borderRadius: '6px',
@@ -618,7 +652,8 @@ export function CardModal() {
                   border: 'none',
                   fontSize: '11px',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: readOnly ? 'default' : 'pointer',
+                  opacity: readOnly ? 0.5 : 1,
                 }}
               >
                 +
@@ -633,7 +668,10 @@ export function CardModal() {
             </span>
             <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (readOnly) return
+                fileInputRef.current?.click()
+              }}
               style={{
                 width: '100%',
                 padding: '7px 10px',
@@ -642,9 +680,10 @@ export function CardModal() {
                 background: 'rgba(255,255,255,.32)',
                 color: 'var(--color-text-tertiary)',
                 fontSize: '12px',
-                cursor: 'pointer',
+                cursor: readOnly ? 'default' : 'pointer',
                 textAlign: 'left',
                 marginBottom: '6px',
+                opacity: readOnly ? 0.5 : 1,
               }}
             >
               📎 Anexar arquivo
@@ -670,8 +709,12 @@ export function CardModal() {
                       <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{f.size}</div>
                     </div>
                     <button
-                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--color-text-tertiary)', padding: 0 }}
+                      onClick={() => {
+                        if (readOnly) return
+                        setFiles((prev) => prev.filter((_, idx) => idx !== i))
+                      }}
+                      disabled={readOnly}
+                      style={{ background: 'none', border: 'none', cursor: readOnly ? 'default' : 'pointer', fontSize: '12px', color: 'var(--color-text-tertiary)', padding: 0, opacity: readOnly ? 0.45 : 1 }}
                     >
                       ×
                     </button>
@@ -681,7 +724,22 @@ export function CardModal() {
             )}
           </div>
         </div>
-      </div>
-    </Modal>
+        </div>
+      </Modal>
+      {!readOnly && (
+        <ConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          title="Excluir tarefa"
+          description={`A tarefa "${card.title}" será removida permanentemente do board.`}
+          confirmLabel="Excluir tarefa"
+          variant="danger"
+          onConfirm={async () => {
+            setIsDeleteDialogOpen(false)
+            await deleteCard(card.id)
+          }}
+        />
+      )}
+    </>
   )
 }

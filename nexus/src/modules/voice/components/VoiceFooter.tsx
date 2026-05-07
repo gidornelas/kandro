@@ -64,6 +64,7 @@ export function VoiceFooter() {
       </ControlBtn>
 
       <button
+        type="button"
         onClick={leaveRoom}
         style={{
           position: 'absolute',
@@ -100,8 +101,11 @@ function ControlBtn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={label}
+      aria-label={label}
+      aria-pressed={active}
       style={{
         width: '48px',
         height: '48px',
@@ -114,7 +118,7 @@ function ControlBtn({
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '20px',
-        transition: 'all .15s',
+        transition: 'background .15s ease, border-color .15s ease, color .15s ease',
       }}
     >
       {children}

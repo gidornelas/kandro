@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { DueType, KanbanCard, KanbanColumn } from '../../shared/types/domain'
 import { KANBAN_COLUMNS, KANBAN_CARDS } from '../../shared/mocks'
+import { useAuthStore } from '../auth/store'
 import * as BoardsApi from './api'
 
 interface BoardState {
@@ -74,8 +75,8 @@ function toCard(card: BoardsApi.BoardCard): KanbanCard {
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
-  columns: [...KANBAN_COLUMNS],
-  cards: [...KANBAN_CARDS],
+  columns: [],
+  cards: [],
   isLoading: false,
   error: null,
   editingCardId: null,
@@ -98,6 +99,10 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar board'
+      if (useAuthStore.getState().isMockMode) {
+        set({ columns: [...KANBAN_COLUMNS], cards: [...KANBAN_CARDS], isLoading: false })
+        return
+      }
       set({ error: message, isLoading: false })
     }
   },
@@ -106,7 +111,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     try {
       const created = await BoardsApi.createCard(columnId, { title })
       set({ cards: [...get().cards, toCard({ ...created, commentCount: 0, threadCount: 0 })], addingToColumn: null })
-    } catch {
+    } catch (err) {
+      if (!useAuthStore.getState().isMockMode) {
+        const message = err instanceof Error ? err.message : 'Erro ao criar card'
+        set({ error: message, addingToColumn: null })
+        return
+      }
       const card: KanbanCard = {
         id: `c${++idCounter}`,
         col: columnId,
@@ -148,6 +158,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   updateCard: async (cardId, updates) => {
+    const previousCards = get().cards
     const nextCards = get().cards.map((c) => (c.id === cardId ? { ...c, ...updates } : c))
     set({
       cards: nextCards,
@@ -162,29 +173,37 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         due: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
       })
     } catch (err) {
+      if (useAuthStore.getState().isMockMode) return
       const message = err instanceof Error ? err.message : 'Erro ao atualizar card'
-      set({ error: message })
+      set({ error: message, cards: previousCards })
     }
   },
 
   deleteCard: async (cardId) => {
+    const previousCards = get().cards
+    set({ cards: previousCards.filter((card) => card.id !== cardId), editingCardId: null })
     try {
       await BoardsApi.deleteCard(cardId)
-    } catch {
-      // Keep local interaction responsive in mock/offline mode.
+    } catch (err) {
+      if (useAuthStore.getState().isMockMode) return
+      const message = err instanceof Error ? err.message : 'Erro ao excluir card'
+      set({ error: message, cards: previousCards })
+      return
     }
-    set({ cards: get().cards.filter((c) => c.id !== cardId), editingCardId: null })
   },
 
   moveCard: async (cardId, toColumnId) => {
+    const previousCards = get().cards
+    set({
+      cards: previousCards.map((card) => (card.id === cardId ? { ...card, col: toColumnId } : card)),
+    })
     try {
       await BoardsApi.moveCard(cardId, { toColumnId })
-    } catch {
-      // Local fallback preserves the drag interaction if the API is unavailable.
+    } catch (err) {
+      if (useAuthStore.getState().isMockMode) return
+      const message = err instanceof Error ? err.message : 'Erro ao mover card'
+      set({ error: message, cards: previousCards })
     }
-    set({
-      cards: get().cards.map((c) => (c.id === cardId ? { ...c, col: toColumnId } : c)),
-    })
   },
 
   reorderCard(activeId, overId) {
@@ -201,7 +220,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     try {
       const column = await BoardsApi.createColumn(channelId, { name })
       set({ columns: [...get().columns, { id: column.id, name: column.name, color: column.color }] })
-    } catch {
+    } catch (err) {
+      if (!useAuthStore.getState().isMockMode) {
+        const message = err instanceof Error ? err.message : 'Erro ao criar coluna'
+        set({ error: message })
+        return
+      }
       const col: KanbanColumn = {
         id: `col${++colCounter}`,
         name,
@@ -212,29 +236,36 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   updateColumn: async (columnId, name) => {
+    const previousColumns = get().columns
     try {
+      set({
+        columns: previousColumns.map((column) => (column.id === columnId ? { ...column, name } : column)),
+        editColumnId: null,
+      })
       await BoardsApi.updateColumn(columnId, { name })
-    } catch {
-      // Local fallback preserves editing in mock/offline mode.
+    } catch (err) {
+      if (useAuthStore.getState().isMockMode) return
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar coluna'
+      set({ error: message, columns: previousColumns, editColumnId: null })
     }
-    set({
-      columns: get().columns.map((c) => (c.id === columnId ? { ...c, name } : c)),
-      editColumnId: null,
-    })
   },
 
   deleteColumn: async (columnId) => {
-    await Promise.all(get().cards.filter((card) => card.col === columnId).map((card) => get().deleteCard(card.id)))
-    try {
-      await BoardsApi.deleteColumn(columnId)
-    } catch {
-      // Local fallback preserves editing in mock/offline mode.
-    }
+    const previousColumns = get().columns
+    const previousCards = get().cards
     set({
-      columns: get().columns.filter((c) => c.id !== columnId),
-      cards: get().cards.filter((c) => c.col !== columnId),
+      columns: previousColumns.filter((column) => column.id !== columnId),
+      cards: previousCards.filter((card) => card.col !== columnId),
       editColumnId: null,
     })
+    try {
+      await Promise.all(previousCards.filter((card) => card.col === columnId).map((card) => BoardsApi.deleteCard(card.id)))
+      await BoardsApi.deleteColumn(columnId)
+    } catch (err) {
+      if (useAuthStore.getState().isMockMode) return
+      const message = err instanceof Error ? err.message : 'Erro ao excluir coluna'
+      set({ error: message, columns: previousColumns, cards: previousCards, editColumnId: null })
+    }
   },
 
   openCardModal(cardId) {

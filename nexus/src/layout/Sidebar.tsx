@@ -3,6 +3,7 @@ import { useUIStore } from '../modules/ui/store'
 import { useAuthStore } from '../modules/auth/store'
 import { useVoiceStore } from '../modules/voice/store'
 import { useAppDataStore } from '../modules/app-data/store'
+import { hasPermissionAction, resolveMemberPermission } from '../modules/permissions/utils'
 
 function StatusDot({ status }: { status?: string }) {
   const color = status === 'online' ? 'var(--color-success)' : status === 'busy' ? 'var(--color-danger)' : status === 'away' ? 'var(--color-warning)' : 'var(--color-text-tertiary)'
@@ -25,17 +26,26 @@ function StatusDot({ status }: { status?: string }) {
 function Section({ id, label, children, action }: { id: string; label: string; children: React.ReactNode; action?: React.ReactNode }) {
   const collapsed = useUIStore((s) => s.collapsedSections.has(id))
   const toggle = useUIStore((s) => s.toggleSection)
+  const contentId = `${id}-section-content`
 
   return (
     <div style={{ marginBottom: '4px' }}>
-      <div
+      <button
+        type="button"
         onClick={() => toggle(id)}
+        aria-expanded={!collapsed}
+        aria-controls={contentId}
         style={{
           display: 'flex',
           alignItems: 'center',
+          width: '100%',
           padding: '5px 14px',
           cursor: 'pointer',
           userSelect: 'none',
+          background: 'transparent',
+          border: 'none',
+          fontFamily: 'var(--font-body)',
+          textAlign: 'left',
         }}
       >
         <span
@@ -46,7 +56,6 @@ function Section({ id, label, children, action }: { id: string; label: string; c
             textTransform: 'uppercase',
             color: 'var(--color-text-tertiary)',
             flex: 1,
-            transition: 'color .15s',
           }}
         >
           {label}
@@ -63,9 +72,9 @@ function Section({ id, label, children, action }: { id: string; label: string; c
         >
           ▾
         </span>
-      </div>
+      </button>
       {!collapsed && (
-        <div style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+        <div id={contentId} style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
           {children}
         </div>
       )}
@@ -87,21 +96,26 @@ function SidebarItem({
   onClick?: () => void
 }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
+        width: '100%',
         padding: '7px 9px',
         borderRadius: 'var(--radius-sm)',
         cursor: 'pointer',
         color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
         fontSize: '13px',
-        transition: 'all .15s',
+        transition: 'background .15s ease, border-color .15s ease, color .15s ease',
         position: 'relative',
         background: active ? 'var(--color-accent-soft)' : 'transparent',
         border: active ? '1px solid var(--color-accent-border)' : '1px solid transparent',
+        fontFamily: 'var(--font-body)',
+        textAlign: 'left',
       }}
     >
       {active && (
@@ -135,12 +149,14 @@ function SidebarItem({
           {badge}
         </span>
       ) : null}
-    </div>
+    </button>
   )
 }
 
 export function Sidebar({ width }: { width: number }) {
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const mainMode = useUIStore((s) => s.mainMode)
   const activeChannelId = useUIStore((s) => s.activeChannelId)
   const activeDmId = useUIStore((s) => s.activeDmId)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -151,14 +167,19 @@ export function Sidebar({ width }: { width: number }) {
   const joinRoom = useVoiceStore((s) => s.joinRoom)
   const channels = useAppDataStore((s) => s.channels)
   const dms = useAppDataStore((s) => s.dms)
+  const teams = useAppDataStore((s) => s.teams)
   const users = useAppDataStore((s) => s.users)
   const workspaces = useAppDataStore((s) => s.workspaces)
   const activeWorkspaceId = useAppDataStore((s) => s.activeWorkspaceId)
 
   const workspace = workspaces.find((item) => item.id === activeWorkspaceId)
-  const projectChannels = channels.filter((c) => c.type === 'board')
-  const textChannels = channels.filter((c) => c.type === 'text')
-  const voiceChannels = channels.filter((c) => c.type === 'voice')
+  const canOpenResource = (resourceId: string, resourceType: 'board' | 'channel' | 'voice_room') => {
+    if (!user?.id) return false
+    return hasPermissionAction(resolveMemberPermission(teams, user.id, resourceId, resourceType).actions, 'view')
+  }
+  const projectChannels = channels.filter((c) => c.type === 'board' && canOpenResource(c.id, 'board'))
+  const textChannels = channels.filter((c) => c.type === 'text' && canOpenResource(c.id, 'channel'))
+  const voiceChannels = channels.filter((c) => c.type === 'voice' && canOpenResource(c.id, 'voice_room'))
 
   return (
     <div
@@ -185,7 +206,6 @@ export function Sidebar({ width }: { width: number }) {
           gap: '10px',
           borderBottom: '1px solid var(--color-border-subtle)',
           flexShrink: 0,
-          cursor: 'pointer',
         }}
       >
         <div
@@ -217,7 +237,7 @@ export function Sidebar({ width }: { width: number }) {
               key={ch.id}
               icon="◈"
               label={ch.name}
-              active={activeProjectId === ch.id}
+              active={mainMode === 'project' && activeProjectId === ch.id}
               onClick={() => openProject(ch.id)}
             />
           ))}
@@ -230,7 +250,7 @@ export function Sidebar({ width }: { width: number }) {
               icon="#"
               label={ch.name}
               badge={ch.badge}
-              active={activeChannelId === ch.id}
+              active={mainMode === 'channel' && activeChannelId === ch.id}
               onClick={() => openChannel(ch.id)}
             />
           ))}
@@ -242,7 +262,7 @@ export function Sidebar({ width }: { width: number }) {
               key={ch.id}
               icon="🔊"
               label={ch.name}
-              active={activeChannelId === ch.id}
+              active={mainMode === 'voice' && activeChannelId === ch.id}
               onClick={() => {
                 openVoice(ch.id)
                 joinRoom(ch.id)
@@ -280,7 +300,7 @@ export function Sidebar({ width }: { width: number }) {
                 }
                 label={u?.name || dm.userId}
                 badge={dm.unread || undefined}
-                active={activeDmId === dm.id}
+                active={mainMode === 'dm' && activeDmId === dm.id}
                 onClick={() => openDm(dm.id)}
               />
             )
@@ -295,11 +315,11 @@ export function Sidebar({ width }: { width: number }) {
           bottom: 0,
           left: 0,
           width: `${width}px`,
-          height: '40px',
+          minHeight: '48px',
           display: 'flex',
           alignItems: 'center',
           gap: '9px',
-          padding: '0 12px',
+          padding: '6px 12px',
           background: 'var(--color-surface)',
           borderTop: '1px solid var(--color-border-subtle)',
         }}
@@ -327,6 +347,38 @@ export function Sidebar({ width }: { width: number }) {
           <div style={{ fontSize: '12px', fontWeight: 600 }}>{user?.name || 'Usuário'}</div>
           <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{user?.role || 'Membro'}</div>
         </div>
+        <button
+          type="button"
+          onClick={logout}
+          aria-label="Fazer logout"
+          title="Sair"
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '8px',
+            border: '1px solid var(--color-border-subtle)',
+            background: 'rgba(255,255,255,.42)',
+            color: 'var(--color-text-secondary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'background .18s ease, border-color .18s ease, color .18s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--color-danger-soft)'
+            e.currentTarget.style.borderColor = 'var(--color-danger-border)'
+            e.currentTarget.style.color = 'var(--color-danger)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,.42)'
+            e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
+            e.currentTarget.style.color = 'var(--color-text-secondary)'
+          }}
+        >
+          ↩
+        </button>
       </div>
     </div>
   )

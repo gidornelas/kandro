@@ -1,5 +1,6 @@
 import { useUIStore } from '../modules/ui/store'
 import { useAppDataStore } from '../modules/app-data/store'
+import { useSettingsStore } from '../modules/settings/store'
 
 export function Header() {
   const mainMode = useUIStore((s) => s.mainMode)
@@ -7,6 +8,7 @@ export function Header() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const channels = useAppDataStore((s) => s.channels)
   const projects = useAppDataStore((s) => s.projects)
+  const openSettings = useSettingsStore((s) => s.openSettings)
 
   const channel = channels.find((c) =>
     mainMode === 'project'
@@ -78,6 +80,28 @@ export function Header() {
         </>
       )}
       <div style={{ flex: 1 }} />
+      <button
+        type="button"
+        onClick={() => openSettings('appearance')}
+        aria-label="Abrir configurações"
+        style={{
+          minHeight: '34px',
+          padding: '0 12px',
+          borderRadius: '10px',
+          border: '1px solid var(--color-border-subtle)',
+          background: 'rgba(255,255,255,.42)',
+          color: 'var(--color-text-secondary)',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'background .18s ease, border-color .18s ease, color .18s ease',
+        }}
+      >
+        <span aria-hidden="true">⚙️</span>
+        Configurações
+      </button>
     </div>
   )
 }

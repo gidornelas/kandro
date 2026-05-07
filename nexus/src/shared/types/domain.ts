@@ -10,8 +10,8 @@ export interface AuthUser {
 }
 
 export type StatusType = 'online' | 'busy' | 'away' | 'dnd' | 'offline'
-export type PermissionLevel = 'none' | 'view' | 'edit'
-export type ResourceType = 'channel' | 'board' | 'folder' | 'doc'
+export type PermissionAction = 'view' | 'post' | 'comment' | 'edit' | 'manage' | 'admin'
+export type ResourceType = 'channel' | 'board' | 'folder' | 'doc' | 'voice_room' | 'settings' | 'member_list' | 'integration' | 'announcement'
 export type MainMode = 'project' | 'channel' | 'dm' | 'voice'
 export type VoiceLayout = 'voice' | 'grid' | 'spotlight' | 'screen'
 export type DueType = 'normal' | 'warning' | 'overdue'
@@ -215,7 +215,7 @@ export interface PresenceEntry {
 export interface TeamPermission {
   resourceId: string
   resourceType: ResourceType
-  level: PermissionLevel
+  actions: PermissionAction[]
 }
 
 export interface Team {

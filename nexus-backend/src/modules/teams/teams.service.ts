@@ -2,7 +2,11 @@ import type { PrismaClient } from "@prisma/client";
 import { NotFoundError } from "../../lib/errors.js";
 import type { CreateTeamInput, SetPermissionInput } from "./teams.schema.js";
 
-const LEVEL_ORDER: Record<string, number> = { none: 0, view: 1, edit: 2 };
+const ACTION_ORDER = ["view", "post", "comment", "edit", "manage", "admin"] as const;
+
+function normalizeActions(actions: string[]) {
+  return ACTION_ORDER.filter((action) => actions.includes(action));
+}
 
 export function createTeamService(prisma: PrismaClient) {
   async function list(workspaceId: string) {
@@ -110,7 +114,9 @@ export function createTeamService(prisma: PrismaClient) {
     teamId: string,
     input: SetPermissionInput
   ) {
-    if (input.level === "none") {
+    const actions = normalizeActions(input.actions);
+
+    if (actions.length === 0) {
       await prisma.teamPermission.deleteMany({
         where: {
           teamId,
@@ -133,46 +139,46 @@ export function createTeamService(prisma: PrismaClient) {
         teamId,
         resourceId: input.resourceId,
         resourceType: input.resourceType,
-        level: input.level,
+        actions,
       },
       update: {
-        level: input.level,
+        actions,
       },
     });
   }
 
   async function resolvePermission(
     userId: string,
-    resourceId: string
-  ): Promise<string> {
+    resourceId: string,
+    resourceType?: string
+  ): Promise<string[]> {
     const teams = await prisma.team.findMany({
       where: {
         members: { some: { userId } },
         permissions: {
           some: {
             resourceId,
-            level: { not: "none" },
+            ...(resourceType ? { resourceType } : {}),
+            actions: { isEmpty: false },
           },
         },
       },
       select: {
         permissions: {
-          where: { resourceId },
-          select: { level: true },
+          where: { resourceId, ...(resourceType ? { resourceType } : {}) },
+          select: { actions: true },
         },
       },
     });
 
-    let best: string = "none";
+    const actions = new Set<string>();
     for (const team of teams) {
       for (const perm of team.permissions) {
-        if (LEVEL_ORDER[perm.level] > LEVEL_ORDER[best]) {
-          best = perm.level;
-        }
+        for (const action of perm.actions) actions.add(action);
       }
     }
 
-    return best;
+    return normalizeActions([...actions]);
   }
 
   async function getResourceTeams(workspaceId: string, resourceId: string) {
@@ -182,7 +188,7 @@ export function createTeamService(prisma: PrismaClient) {
         permissions: {
           some: {
             resourceId,
-            level: { not: "none" },
+            actions: { isEmpty: false },
           },
         },
       },

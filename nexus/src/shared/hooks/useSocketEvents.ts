@@ -173,6 +173,32 @@ export function useSocketEvents() {
       })
     }
 
+    const handleVoiceSpeaking = (data: { userId?: string; speaking?: boolean }) => {
+      if (data.speaking && data.userId) {
+        useVoiceStore.getState().setActiveSpeaker(data.userId)
+      }
+    }
+
+    const handleVoiceRoomEnded = (data: { channelId: string }) => {
+      if (useVoiceStore.getState().channelId === data.channelId) {
+        useVoiceStore.setState({
+          active: false,
+          connectionState: 'idle',
+          token: null,
+          room: null,
+          channelId: null,
+          url: null,
+          participants: [],
+          activeSpeakerId: '',
+          screenSharerId: null,
+          screenEnabled: false,
+          cameraEnabled: false,
+          micEnabled: true,
+          callDuration: 0,
+        })
+      }
+    }
+
     socket.on('chat:message', handleChatMessage)
     socket.on('chat:updated', handleChatUpdated)
     socket.on('chat:deleted', handleChatDeleted)
@@ -194,6 +220,8 @@ export function useSocketEvents() {
     socket.on('voice:participant:joined', handleVoiceParticipantJoined)
     socket.on('voice:participant:left', handleVoiceParticipantLeft)
     socket.on('voice:participant:changed', handleVoiceParticipantChanged)
+    socket.on('voice:speaking', handleVoiceSpeaking)
+    socket.on('voice:room:ended', handleVoiceRoomEnded)
 
     return () => {
       socket.off('chat:message', handleChatMessage)
@@ -214,6 +242,8 @@ export function useSocketEvents() {
       socket.off('voice:participant:joined', handleVoiceParticipantJoined)
       socket.off('voice:participant:left', handleVoiceParticipantLeft)
       socket.off('voice:participant:changed', handleVoiceParticipantChanged)
+      socket.off('voice:speaking', handleVoiceSpeaking)
+      socket.off('voice:room:ended', handleVoiceRoomEnded)
     }
   }, [activeProjectId])
 

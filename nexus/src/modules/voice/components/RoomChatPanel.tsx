@@ -1,12 +1,15 @@
 import React from 'react'
 import { useVoiceStore } from '../store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
+import { useAuthStore } from '../../auth/store'
 import { EmptyState } from '../../../design-system/EmptyState'
 
 export function RoomChatPanel() {
   const chatOpen = useVoiceStore((s) => s.chatOpen)
   const messages = useVoiceStore((s) => s.roomMessages)
   const sendMessage = useVoiceStore((s) => s.sendRoomMessage)
+  const users = useAppDataStore((s) => s.users)
+  const currentUserId = useAuthStore((s) => s.user?.id)
   const [input, setInput] = React.useState('')
 
   if (!chatOpen) return null
@@ -48,8 +51,8 @@ export function RoomChatPanel() {
           <EmptyState icon="💬" title="Sem mensagens" description="Envie uma mensagem para a sala." />
         ) : (
           messages.map((msg) => {
-            const user = USERS[msg.userId]
-            const isMe = msg.userId === 'me'
+            const user = users[msg.userId]
+            const isMe = msg.userId === currentUserId
             return (
               <div key={msg.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 {!isMe && (

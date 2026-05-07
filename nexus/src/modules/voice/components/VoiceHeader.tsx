@@ -1,5 +1,7 @@
 import { useVoiceStore } from '../store'
 import { fmtDuration } from '../lib/fmtDuration'
+import { useAppDataStore } from '../../app-data/store'
+import { useSettingsStore } from '../../settings/store'
 
 const LAYOUTS: { key: 'voice' | 'grid' | 'spotlight' | 'screen'; label: string; icon: string }[] = [
   { key: 'voice', label: 'Voz', icon: '🎙' },
@@ -11,10 +13,14 @@ const LAYOUTS: { key: 'voice' | 'grid' | 'spotlight' | 'screen'; label: string; 
 export function VoiceHeader() {
   const participants = useVoiceStore((s) => s.participants)
   const layout = useVoiceStore((s) => s.layout)
+  const chatOpen = useVoiceStore((s) => s.chatOpen)
   const callDuration = useVoiceStore((s) => s.callDuration)
+  const activeChannelId = useVoiceStore((s) => s.channelId)
   const setLayout = useVoiceStore((s) => s.setLayout)
   const toggleChat = useVoiceStore((s) => s.toggleChat)
   const leaveRoom = useVoiceStore((s) => s.leaveRoom)
+  const openSettings = useSettingsStore((s) => s.openSettings)
+  const channelName = useAppDataStore((s) => s.channels.find((channel) => channel.id === activeChannelId)?.name ?? 'Sala de voz')
 
   return (
     <div
@@ -50,7 +56,7 @@ export function VoiceHeader() {
         LIVE
       </div>
 
-      <span style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap' }}>Standup Daily</span>
+      <span style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{channelName}</span>
       <span style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
         {participants.length} participantes
       </span>
@@ -73,11 +79,14 @@ export function VoiceHeader() {
         {LAYOUTS.map((l) => (
           <button
             key={l.key}
+            type="button"
             onClick={() => setLayout(l.key)}
             title={l.label}
+            aria-label={`Alterar layout para ${l.label}`}
+            aria-pressed={layout === l.key}
             style={{
-              width: '32px',
-              height: '32px',
+              width: '40px',
+              height: '40px',
               borderRadius: '8px',
               border: `1px solid ${layout === l.key ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
               background: layout === l.key ? 'var(--color-accent-soft)' : 'rgba(255,255,255,.52)',
@@ -87,7 +96,7 @@ export function VoiceHeader() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all .15s',
+              transition: 'background .15s ease, border-color .15s ease, color .15s ease',
             }}
           >
             {l.icon}
@@ -96,29 +105,56 @@ export function VoiceHeader() {
       </div>
 
       <button
+        type="button"
         onClick={toggleChat}
         title="Chat"
+        aria-label={chatOpen ? 'Fechar chat da reunião' : 'Abrir chat da reunião'}
+        aria-pressed={chatOpen}
         style={{
-          width: '32px',
-          height: '32px',
+          width: '40px',
+          height: '40px',
           borderRadius: '8px',
-          border: '1px solid var(--color-border-subtle)',
-          background: 'rgba(255,255,255,.52)',
-          color: 'var(--color-text-tertiary)',
+          border: `1px solid ${chatOpen ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
+          background: chatOpen ? 'var(--color-accent-soft)' : 'rgba(255,255,255,.52)',
+          color: chatOpen ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
           fontSize: '14px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          transition: 'background .15s ease, border-color .15s ease, color .15s ease',
         }}
       >
         💬
       </button>
 
       <button
+        type="button"
+        onClick={() => openSettings('voice-video')}
+        title="Abrir preferências de voz e vídeo"
+        aria-label="Abrir preferências de voz e vídeo"
+        style={{
+          minHeight: '40px',
+          padding: '0 12px',
+          borderRadius: '10px',
+          border: '1px solid var(--color-border-subtle)',
+          background: 'rgba(255,255,255,.52)',
+          color: 'var(--color-text-secondary)',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          flexShrink: 0,
+        }}
+      >
+        A/V
+      </button>
+
+      <button
+        type="button"
         onClick={leaveRoom}
         style={{
-          padding: '6px 14px',
+          minHeight: '40px',
+          padding: '0 14px',
           borderRadius: '10px',
           background: 'var(--color-danger-soft)',
           border: '1px solid var(--color-danger-border)',

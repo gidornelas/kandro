@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { MainMode } from '../../shared/types/domain'
 
 type Modal = 'taskDetail' | 'createTask' | 'addColumn' | null
-type ProjectView = 'board' | 'timeline' | 'list' | 'files'
+export type ProjectView = 'board' | 'timeline' | 'list' | 'files'
 
 interface UIState {
   mainMode: MainMode
@@ -61,3 +61,5 @@ export const useUIStore = create<UIState>((set) => ({
   openModal: (m, cardId) => set({ activeModal: m, activeCardId: cardId ?? null }),
   closeModal: () => set({ activeModal: null, activeCardId: null }),
 }))
+
+export type UISnapshot = Pick<UIState, 'mainMode' | 'activeProjectId' | 'activeChannelId' | 'activeDmId' | 'projectView'>

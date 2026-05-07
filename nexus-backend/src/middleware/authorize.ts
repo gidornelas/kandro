@@ -1,7 +1,16 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ForbiddenError, NotFoundError } from "../lib/errors.js";
+import type { ResourceType } from "../types/index.js";
 
 type RoleCheck = "owner" | "admin" | "member";
+const roleOrder: Record<string, number> = { member: 0, admin: 1, owner: 2 };
+const CHANNEL_ACCESS_ACTIONS = ["view", "post", "comment", "edit", "manage", "admin"];
+
+function getChannelResourceTypes(channelType: string): ResourceType[] {
+  if (channelType === "board") return ["board", "channel"];
+  if (channelType === "voice") return ["voice_room", "channel"];
+  return ["channel"];
+}
 
 export function requireWorkspaceRole(minRole: RoleCheck) {
   return async (request: FastifyRequest, _reply: FastifyReply) => {
@@ -23,7 +32,6 @@ export function requireWorkspaceRole(minRole: RoleCheck) {
       throw new ForbiddenError("Você não é membro deste workspace");
     }
 
-    const roleOrder: Record<string, number> = { member: 0, admin: 1, owner: 2 };
     if (roleOrder[member.role] < roleOrder[minRole]) {
       throw new ForbiddenError(
         `Requires role ${minRole}, but you are ${member.role}`
@@ -65,6 +73,7 @@ export async function requireChannelAccess(
   }
 
   if (channel.private) {
+    const resourceTypes = getChannelResourceTypes(channel.type);
     // For private channels, verify membership via team permissions
     const teams = await prisma.team.findMany({
       where: {
@@ -73,8 +82,8 @@ export async function requireChannelAccess(
         permissions: {
           some: {
             resourceId: channel.id,
-            resourceType: "channel",
-            level: { in: ["view", "edit"] },
+            resourceType: { in: resourceTypes },
+            actions: { hasSome: CHANNEL_ACCESS_ACTIONS },
           },
         },
       },

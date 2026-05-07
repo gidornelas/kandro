@@ -4,10 +4,18 @@ import { useMessagesStore } from '../../messages/store'
 import { useAppDataStore } from '../../app-data/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
+import { useResolvedPermissions } from '../../permissions/hooks'
+import { hasPermissionAction } from '../../permissions/utils'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🤔', '👀']
 
-const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[]; attachment?: { name: string; size: string; icon: string }; taskCard?: { label: string; title: string; due: string; priority: string; priorityColor: string } } }) {
+const MessageItem = React.memo(function MessageItem({
+  msg,
+  canReact,
+}: {
+  msg: { id: string; channel: string; user: string; userId: string; time: string; text: string; reactions: { emoji: string; count: number; me: boolean }[]; attachment?: { name: string; size: string; icon: string }; taskCard?: { label: string; title: string; due: string; priority: string; priorityColor: string } }
+  canReact: boolean
+}) {
   const user = useAppDataStore((s) => s.users[msg.userId])
   const addReaction = useMessagesStore((s) => s.addReaction)
   const [showReactions, setShowReactions] = React.useState(false)
@@ -93,14 +101,17 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string
             {msg.reactions.map((r, i) => (
               <span
                 key={i}
-                onClick={() => addReaction(msg.id, r.emoji)}
+                onClick={() => {
+                  if (!canReact) return
+                  void addReaction(msg.id, r.emoji)
+                }}
                 style={{
                   padding: '2px 8px',
                   background: r.me ? 'var(--color-accent-soft)' : 'rgba(255,255,255,.65)',
                   border: `1px solid ${r.me ? 'var(--color-accent-border)' : 'var(--color-border-subtle)'}`,
                   borderRadius: '999px',
                   fontSize: '12px',
-                  cursor: 'pointer',
+                  cursor: canReact ? 'pointer' : 'default',
                   color: r.me ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                 }}
               >
@@ -109,12 +120,12 @@ const MessageItem = React.memo(function MessageItem({ msg }: { msg: { id: string
             ))}
           </div>
         )}
-        {showReactions && (
+        {showReactions && canReact && (
           <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
             {QUICK_REACTIONS.map((emoji) => (
               <button
                 key={emoji}
-                onClick={() => addReaction(msg.id, emoji)}
+                onClick={() => void addReaction(msg.id, emoji)}
                 style={{
                   padding: '3px 7px',
                   borderRadius: '999px',
@@ -146,6 +157,10 @@ export function ChatView() {
   const isLoading = useMessagesStore((s) => s.isLoading)
   const [input, setInput] = React.useState('')
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const permissions = useResolvedPermissions(activeChannelId, 'channel')
+  const canViewChannel = hasPermissionAction(permissions.actions, 'view')
+  const canPostChannel = hasPermissionAction(permissions.actions, 'post') || hasPermissionAction(permissions.actions, 'edit')
+  const canReactToMessages = hasPermissionAction(permissions.actions, 'comment') || canPostChannel
 
   const messages = React.useMemo(() => {
     if (!activeChannelId) return []
@@ -167,7 +182,7 @@ export function ChatView() {
 
   const handleSend = () => {
     const text = input.trim()
-    if (!text || !activeChannelId) return
+    if (!text || !activeChannelId || !canPostChannel) return
     void sendMessage(activeChannelId, text)
     setInput('')
   }
@@ -175,7 +190,13 @@ export function ChatView() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {isLoading ? (
+        {!canViewChannel ? (
+          <EmptyState
+            icon="🔒"
+            title="Canal restrito para você"
+            description="Sua equipe ainda não tem permissão de visualização neste canal."
+          />
+        ) : isLoading ? (
           <>
             <Skeleton height={60} count={4} />
           </>
@@ -186,7 +207,7 @@ export function ChatView() {
             description="Seja o primeiro a enviar uma mensagem neste canal."
           />
         ) : (
-          messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
+          messages.map((msg) => <MessageItem key={msg.id} msg={msg} canReact={canReactToMessages} />)
         )}
       </div>
       <div style={{ padding: '10px 20px 14px', borderTop: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
@@ -204,9 +225,10 @@ export function ChatView() {
         >
           <input
             type="text"
-            placeholder="Mensagem..."
+            placeholder={canPostChannel ? 'Mensagem...' : 'Você tem acesso somente leitura neste canal'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            disabled={!canPostChannel}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -226,16 +248,16 @@ export function ChatView() {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || !canPostChannel}
             style={{
               width: '28px',
               height: '28px',
               borderRadius: '8px',
               border: 'none',
-              background: input.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
+              background: input.trim() && canPostChannel ? 'var(--color-accent)' : 'var(--color-border-subtle)',
               color: '#fff',
               fontSize: '14px',
-              cursor: input.trim() ? 'pointer' : 'default',
+              cursor: input.trim() && canPostChannel ? 'pointer' : 'default',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -12,8 +12,8 @@ export const updateTeamSchema = z.object({
 
 export const setPermissionSchema = z.object({
   resourceId: z.string(),
-  resourceType: z.enum(["channel", "board", "folder", "doc"]),
-  level: z.enum(["none", "view", "edit"]),
+  resourceType: z.enum(["channel", "board", "folder", "doc", "voice_room", "settings", "member_list", "integration", "announcement"]),
+  actions: z.array(z.enum(["view", "post", "comment", "edit", "manage", "admin"])).default([]),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

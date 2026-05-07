@@ -6,8 +6,15 @@ import * as TeamsApi from '../teams/api'
 import * as WorkspacesApi from '../workspaces/api'
 import { useAuthStore } from '../auth/store'
 import { useUIStore } from '../ui/store'
-import type { Channel, DirectMessage, Project, Team, User, Workspace } from '../../shared/types/domain'
+import type { Channel, DirectMessage, Project, Team, TeamPermission, User, Workspace } from '../../shared/types/domain'
 import { CHANNELS, DMS, PROJECTS, TEAMS, USERS } from '../../shared/mocks'
+
+const mockWorkspace: Workspace = {
+  id: 'mock-workspace',
+  name: 'NEXUS',
+  initials: 'N',
+  color: '#2f80ed',
+}
 
 interface ChannelResponse extends Omit<Channel, 'desc'> {
   desc?: string
@@ -31,6 +38,10 @@ interface AppDataState {
   error: string | null
   initialize: () => Promise<void>
   setActiveWorkspace: (workspaceId: string) => Promise<void>
+  createTeam: (data: { name: string; color: string }) => Promise<void>
+  updateTeam: (teamId: string, updates: { name?: string; color?: string }) => Promise<void>
+  removeTeam: (teamId: string) => Promise<void>
+  updateTeamPermission: (teamId: string, permission: TeamPermission) => Promise<void>
 }
 
 function toChannel(channel: ChannelResponse): Channel {
@@ -71,6 +82,30 @@ function toDm(room: DmsApi.DmRoom, currentUserId: string): DirectMessage {
   }
 }
 
+function sortPermissionActions(actions: TeamPermission['actions']) {
+  const order: Record<TeamPermission['actions'][number], number> = {
+    view: 0,
+    post: 1,
+    comment: 2,
+    edit: 3,
+    manage: 4,
+    admin: 5,
+  }
+  return [...new Set(actions)].sort((a, b) => order[a] - order[b])
+}
+
+function mergeTeamPermission(permissions: TeamPermission[], nextPermission: TeamPermission) {
+  const normalizedPermission = {
+    ...nextPermission,
+    actions: sortPermissionActions(nextPermission.actions),
+  }
+  const filteredPermissions = permissions.filter((permission) =>
+    !(permission.resourceId === normalizedPermission.resourceId && permission.resourceType === normalizedPermission.resourceType),
+  )
+  if (normalizedPermission.actions.length === 0) return filteredPermissions
+  return [...filteredPermissions, normalizedPermission]
+}
+
 function syncInitialSelection(channels: Channel[], dms: DirectMessage[]) {
   const ui = useUIStore.getState()
   const boardChannels = channels.filter((channel) => channel.type === 'board')
@@ -87,14 +122,40 @@ function syncInitialSelection(channels: Channel[], dms: DirectMessage[]) {
   }
 }
 
+function createLocalTeam(data: { name: string; color: string }): Team {
+  return {
+    id: `team-${Date.now()}`,
+    name: data.name,
+    color: data.color,
+    memberIds: [],
+    permissions: [],
+  }
+}
+
+function applyMockAppData() {
+  const dms = DMS.map((dm) => ({ ...dm, messages: [] }))
+  syncInitialSelection(CHANNELS, dms)
+  return {
+    workspaces: [mockWorkspace],
+    activeWorkspaceId: mockWorkspace.id,
+    channels: CHANNELS,
+    projects: PROJECTS,
+    teams: TEAMS,
+    users: USERS,
+    dms,
+    isLoading: false,
+    error: null,
+  }
+}
+
 export const useAppDataStore = create<AppDataState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
-  channels: CHANNELS,
-  projects: PROJECTS,
-  teams: TEAMS,
-  users: USERS,
-  dms: DMS.map((dm) => ({ ...dm, messages: [] })),
+  channels: [],
+  projects: [],
+  teams: [],
+  users: {},
+  dms: [],
   isLoading: false,
   error: null,
 
@@ -111,6 +172,10 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       set({ workspaces, activeWorkspaceId })
       await get().setActiveWorkspace(activeWorkspaceId)
     } catch (err) {
+      if (useAuthStore.getState().isMockMode) {
+        set(applyMockAppData())
+        return
+      }
       const message = err instanceof Error ? err.message : 'Erro ao carregar workspace'
       set({ error: message, isLoading: false })
     }
@@ -139,20 +204,131 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
           },
         ]),
       )
+      for (const room of dms) {
+        users[room.userA.id] = {
+          id: room.userA.id,
+          name: room.userA.name,
+          initials: room.userA.initials,
+          color: room.userA.color,
+          role: users[room.userA.id]?.role ?? '',
+          status: (room.userA.status as User['status']) ?? users[room.userA.id]?.status ?? 'offline',
+        }
+        users[room.userB.id] = {
+          id: room.userB.id,
+          name: room.userB.name,
+          initials: room.userB.initials,
+          color: room.userB.color,
+          role: users[room.userB.id]?.role ?? '',
+          status: (room.userB.status as User['status']) ?? users[room.userB.id]?.status ?? 'offline',
+        }
+      }
+      const currentUser = useAuthStore.getState().user
+      if (currentUser) {
+        users[currentUser.id] = {
+          id: currentUser.id,
+          name: currentUser.name,
+          initials: currentUser.initials,
+          color: currentUser.color,
+          role: currentUser.role,
+          status: currentUser.status,
+        }
+      }
       const mappedChannels = channels.map((channel) => toChannel(channel as ChannelResponse))
       const mappedDms = dms.map((dm) => toDm(dm, useAuthStore.getState().user?.id ?? ''))
       set({
         channels: mappedChannels,
         projects: projects.map((project) => toProject(project as ProjectResponse)),
         teams: teams.map(toTeam),
-        users: { ...USERS, ...users },
+        users,
         dms: mappedDms,
         isLoading: false,
       })
       syncInitialSelection(mappedChannels, mappedDms)
     } catch (err) {
+      if (useAuthStore.getState().isMockMode) {
+        set(applyMockAppData())
+        return
+      }
       const message = err instanceof Error ? err.message : 'Erro ao carregar dados do workspace'
       set({ error: message, isLoading: false })
+    }
+  },
+
+  createTeam: async (data) => {
+    const workspaceId = get().activeWorkspaceId
+    if (!workspaceId) {
+      set({ error: 'Nenhum workspace ativo para criar equipe' })
+      return
+    }
+
+    const previousTeams = get().teams
+    const optimisticTeam = createLocalTeam(data)
+    set({ teams: [...previousTeams, optimisticTeam], error: null })
+
+    if (useAuthStore.getState().isMockMode) return
+
+    try {
+      const createdTeam = toTeam(await TeamsApi.create(workspaceId, data))
+      set({ teams: [...previousTeams, createdTeam] })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao criar equipe'
+      set({ teams: previousTeams, error: message })
+    }
+  },
+
+  updateTeam: async (teamId, updates) => {
+    const previousTeams = get().teams
+    const nextTeams = previousTeams.map((team) => (team.id === teamId ? { ...team, ...updates } : team))
+    set({ teams: nextTeams, error: null })
+
+    if (useAuthStore.getState().isMockMode) return
+
+    try {
+      const updatedTeam = toTeam(await TeamsApi.update(teamId, updates))
+      set({
+        teams: previousTeams.map((team) => (team.id === teamId ? updatedTeam : team)),
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar equipe'
+      set({ teams: previousTeams, error: message })
+    }
+  },
+
+  removeTeam: async (teamId) => {
+    const previousTeams = get().teams
+    const nextTeams = previousTeams.filter((team) => team.id !== teamId)
+    set({ teams: nextTeams, error: null })
+
+    if (useAuthStore.getState().isMockMode) return
+
+    try {
+      await TeamsApi.remove(teamId)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover equipe'
+      set({ teams: previousTeams, error: message })
+    }
+  },
+
+  updateTeamPermission: async (teamId, permission) => {
+    const previousTeams = get().teams
+    const nextTeams = previousTeams.map((team) =>
+      team.id === teamId
+        ? {
+            ...team,
+            permissions: mergeTeamPermission(team.permissions, permission),
+          }
+        : team,
+    )
+
+    set({ teams: nextTeams, error: null })
+
+    if (useAuthStore.getState().isMockMode) return
+
+    try {
+      await TeamsApi.setPermission(teamId, permission)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar permissões da equipe'
+      set({ teams: previousTeams, error: message })
     }
   },
 }))

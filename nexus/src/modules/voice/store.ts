@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import type { VoiceLayout, Message } from '../../shared/types/domain'
+import { useAuthStore } from '../auth/store'
+import { useSettingsStore } from '../settings/store'
+import { getVoiceSession, getVoiceToken, leaveVoice as leaveVoiceApi, updateParticipant as updateVoiceParticipantApi } from './api'
 
 export type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error'
 
@@ -22,6 +25,7 @@ interface VoiceState {
   connectionState: ConnectionState
   error: string | null
   token: string | null
+  channelId: string | null
   room: string | null
   url: string | null
   participants: VoiceParticipant[]
@@ -45,111 +49,155 @@ interface VoiceState {
   tickTimer: () => void
 }
 
-const defaultParticipants: VoiceParticipant[] = [
-  { userId: 'rc', muted: false, cameraOn: false, sharing: false },
-  { userId: 'al', muted: false, cameraOn: true, sharing: true },
-  { userId: 'cm', muted: true, cameraOn: false, sharing: false },
-  { userId: 'jl', muted: true, cameraOn: false, sharing: false },
-  { userId: 'ms', muted: false, cameraOn: false, sharing: false },
-]
-
-const defaultSpeakerId = 'rc'
-
-const initialMessages: Message[] = [
-  { id: 'v1', channel: 'standup', user: 'rc', userId: 'rc', time: '09:05', createdAt: '2025-05-04T09:05:00Z', text: 'Bom dia, time!', reactions: [] },
-  { id: 'v2', channel: 'standup', user: 'al', userId: 'al', time: '09:06', createdAt: '2025-05-04T09:06:00Z', text: 'Vou compartilhar a tela do Figma.', reactions: [] },
-  { id: 'v3', channel: 'standup', user: 'jl', userId: 'jl', time: '09:07', createdAt: '2025-05-04T09:07:00Z', text: 'DataTable tá quase pronto.', reactions: [{ emoji: '👍', count: 2, me: false }] },
-]
-
 let msgId = 4
 
+function resetVoiceState() {
+  const voiceVideo = useSettingsStore.getState().voiceVideo
+  return {
+    active: false,
+    layout: voiceVideo.preferredVoiceLayout as VoiceLayout,
+    micEnabled: !voiceVideo.autoMuteOnJoin,
+    cameraEnabled: !voiceVideo.autoCameraOffOnJoin,
+    screenEnabled: false,
+    chatOpen: false,
+    activeSpeakerId: '',
+    screenSharerId: null,
+    connectionState: 'idle' as ConnectionState,
+    error: null,
+    token: null,
+    channelId: null,
+    room: null,
+    url: null,
+    participants: [] as VoiceParticipant[],
+    roomMessages: [] as Message[],
+    callDuration: 0,
+  }
+}
+
+function deriveParticipantState(participants: VoiceParticipant[], currentSpeakerId: string, currentSharerId: string | null) {
+  const activeSpeakerId = participants.some((participant) => participant.userId === currentSpeakerId)
+    ? currentSpeakerId
+    : participants[0]?.userId ?? ''
+  const screenSharerId = participants.some((participant) => participant.userId === currentSharerId && participant.sharing)
+    ? currentSharerId
+    : participants.find((participant) => participant.sharing)?.userId ?? null
+
+  return { activeSpeakerId, screenSharerId }
+}
+
 export const useVoiceStore = create<VoiceState>((set, get) => ({
-  active: false,
-  layout: 'voice',
-  micEnabled: true,
-  cameraEnabled: false,
-  screenEnabled: false,
-  chatOpen: false,
-  activeSpeakerId: defaultSpeakerId,
-  screenSharerId: 'al',
-  connectionState: 'idle',
-  error: null,
-  token: null,
-  room: null,
-  url: null,
-  participants: defaultParticipants,
-  roomMessages: initialMessages,
-  callDuration: 0,
+  ...resetVoiceState(),
 
   joinRoom: (channelId = 'standup') => {
     void get().connect(channelId)
   },
 
-  leaveRoom: () => {
-    set({
-      active: false,
-      chatOpen: false,
-      cameraEnabled: false,
-      screenEnabled: false,
-      connectionState: 'idle',
-      error: null,
-      token: null,
-      room: null,
-      url: null,
-      activeSpeakerId: defaultSpeakerId,
-      screenSharerId: null,
-      participants: defaultParticipants,
-      roomMessages: initialMessages,
-      callDuration: 0,
-    })
+  leaveRoom: async () => {
+    const channelId = get().channelId
+    if (channelId) {
+      try {
+        await leaveVoiceApi(channelId)
+      } catch {
+        // Best-effort cleanup; local state should still reset.
+      }
+    }
+    set(resetVoiceState())
   },
 
   connect: async (channelId) => {
     set({ connectionState: 'connecting', error: null })
-    set({
-      active: true,
-      layout: 'voice',
-      connectionState: 'connected',
-      token: 'mock-token',
-      room: channelId,
-      url: 'mock://voice',
-      participants: get().participants.length > 0 ? get().participants : defaultParticipants,
-      activeSpeakerId: get().activeSpeakerId || defaultSpeakerId,
-      screenSharerId: get().screenSharerId || 'al',
-      callDuration: 0,
-    })
+    try {
+      const [tokenData, session] = await Promise.all([
+        getVoiceToken(channelId),
+        getVoiceSession(channelId),
+      ])
+      const participants = session.participants.map((participant) => ({
+        userId: participant.userId,
+        muted: participant.muted,
+        cameraOn: participant.cameraOn,
+        sharing: participant.sharing,
+      }))
+      const { activeSpeakerId, screenSharerId } = deriveParticipantState(participants, get().activeSpeakerId, get().screenSharerId)
+      set({
+        active: true,
+        layout: screenSharerId ? 'screen' : 'voice',
+        connectionState: 'connected',
+        token: tokenData.token,
+        channelId,
+        room: tokenData.room,
+        url: tokenData.url,
+        participants,
+        activeSpeakerId,
+        screenSharerId,
+        screenEnabled: Boolean(screenSharerId && screenSharerId === useAuthStore.getState().user?.id),
+        callDuration: 0,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao conectar à sala de voz'
+      set({ ...resetVoiceState(), connectionState: 'error', error: message })
+    }
   },
 
   disconnect: () => get().leaveRoom(),
   setLayout: (layout) => set({ layout }),
-  toggleMic: () => set((state) => ({ micEnabled: !state.micEnabled })),
-  toggleCamera: () => set((state) => ({ cameraEnabled: !state.cameraEnabled })),
+  toggleMic: () => {
+    const state = get()
+    const userId = useAuthStore.getState().user?.id
+    const next = !state.micEnabled
+    set({ micEnabled: next })
+    if (!state.channelId || !userId) return
+    get().updateParticipant(userId, { muted: !next })
+    void updateVoiceParticipantApi(state.channelId, { muted: !next })
+  },
+  toggleCamera: () => {
+    const state = get()
+    const userId = useAuthStore.getState().user?.id
+    const next = !state.cameraEnabled
+    set({ cameraEnabled: next })
+    if (!state.channelId || !userId) return
+    get().updateParticipant(userId, { cameraOn: next })
+    void updateVoiceParticipantApi(state.channelId, { cameraOn: next })
+  },
   toggleScreen: () => {
-    const next = !get().screenEnabled
-    set({ screenEnabled: next, layout: next ? 'screen' : 'voice' })
-    if (next) {
-      // Simulate: when local user shares screen, set them as sharer
-      // For demo, cycle between sharers or set to 'al' if not set
-      const sharer = get().screenSharerId || 'al'
-      set({ screenSharerId: sharer })
-    } else {
-      set({ screenSharerId: null })
-    }
+    const state = get()
+    const userId = useAuthStore.getState().user?.id
+    const next = !state.screenEnabled
+    set({
+      screenEnabled: next,
+      layout: next ? 'screen' : state.layout === 'screen' ? 'voice' : state.layout,
+      screenSharerId: next ? userId ?? state.screenSharerId : state.screenSharerId === userId ? null : state.screenSharerId,
+    })
+    if (!state.channelId || !userId) return
+    get().updateParticipant(userId, { sharing: next })
+    void updateVoiceParticipantApi(state.channelId, { sharing: next })
   },
   toggleChat: () => set((state) => ({ chatOpen: !state.chatOpen })),
   setActiveSpeaker: (id) => set({ activeSpeakerId: id }),
   setScreenSharer: (id) => set({ screenSharerId: id }),
-  setParticipants: (participants) => set({ participants }),
+  setParticipants: (participants) => {
+    const { activeSpeakerId, screenSharerId } = deriveParticipantState(participants, get().activeSpeakerId, get().screenSharerId)
+    set({
+      participants,
+      activeSpeakerId,
+      screenSharerId,
+      active: participants.length > 0 ? get().active : false,
+      layout: get().layout === 'screen' && !screenSharerId ? 'voice' : get().layout,
+    })
+  },
   updateParticipant: (userId, updates) =>
     set((state) => ({
-      participants: state.participants.map((p) => (p.userId === userId ? { ...p, ...updates } : p)),
+      participants: state.participants.some((participant) => participant.userId === userId)
+        ? state.participants.map((participant) => (participant.userId === userId ? { ...participant, ...updates } : participant))
+        : [...state.participants, { userId, muted: false, cameraOn: false, sharing: false, ...updates }],
+      screenSharerId: updates.sharing === true ? userId : updates.sharing === false && state.screenSharerId === userId ? null : state.screenSharerId,
     })),
   sendRoomMessage: (text) => {
+    const user = useAuthStore.getState().user
     const msg: Message = {
       id: `v${++msgId}`,
-      channel: get().room || 'standup',
-      user: 'me',
-      userId: 'me',
+      channel: get().channelId || get().room || 'voice',
+      user: user?.name || 'Você',
+      userId: user?.id || 'me',
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString(),
       text,

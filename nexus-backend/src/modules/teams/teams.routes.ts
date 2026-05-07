@@ -109,12 +109,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
     "/api/permissions/resolve",
     { preHandler: [authenticate] },
     async (request) => {
-      const query = request.query as { resourceId: string };
-      const level = await teamService.resolvePermission(
+      const query = request.query as { resourceId: string; resourceType?: string };
+      const actions = await teamService.resolvePermission(
         request.user.sub,
-        query.resourceId
+        query.resourceId,
+        query.resourceType
       );
-      return { level };
+      return { actions };
     }
   );
 

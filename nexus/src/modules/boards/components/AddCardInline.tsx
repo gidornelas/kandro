@@ -1,7 +1,7 @@
 import React from 'react'
 import { useBoardStore } from '../store'
 
-export function AddCardInline({ columnId }: { columnId: string }) {
+export function AddCardInline({ columnId, disabled = false }: { columnId: string; disabled?: boolean }) {
   const addingToColumn = useBoardStore((s) => s.addingToColumn)
   const addCard = useBoardStore((s) => s.addCard)
   const closeAddCard = useBoardStore((s) => s.closeAddCard)
@@ -11,6 +11,7 @@ export function AddCardInline({ columnId }: { columnId: string }) {
   if (addingToColumn !== columnId) return null
 
   const submit = () => {
+    if (disabled) return
     const t = title.trim()
     if (t) void addCard(columnId, t)
     setTitle('')
@@ -23,6 +24,7 @@ export function AddCardInline({ columnId }: { columnId: string }) {
         type="text"
         placeholder="Título da tarefa..."
         value={title}
+        disabled={disabled}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit()

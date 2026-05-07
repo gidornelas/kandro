@@ -102,19 +102,19 @@ export function registerTeamSocketHandlers(
   // team:permission:set
   socket.on(
     "team:permission:set",
-    async (data: { teamId: string; workspaceId: string; resourceId: string; resourceType: string; level: string }, callback) => {
+    async (data: { teamId: string; workspaceId: string; resourceId: string; resourceType: string; actions: string[] }, callback) => {
       try {
         const permission = await teamService.setPermission(data.teamId, {
           resourceId: data.resourceId,
-          resourceType: data.resourceType as "channel" | "board" | "folder" | "doc",
-          level: data.level as "none" | "view" | "edit",
+          resourceType: data.resourceType as "channel" | "board" | "folder" | "doc" | "voice_room" | "settings" | "member_list" | "integration" | "announcement",
+          actions: data.actions as Array<"view" | "post" | "comment" | "edit" | "manage" | "admin">,
         });
 
         io.to(`workspace:${data.workspaceId}`).emit("team:permission:set", {
           teamId: data.teamId,
           resourceId: data.resourceId,
           resourceType: data.resourceType,
-          level: data.level,
+          actions: data.actions,
           permission,
         });
         if (callback) callback({ ok: true, permission });

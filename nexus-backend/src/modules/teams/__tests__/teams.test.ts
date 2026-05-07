@@ -32,7 +32,7 @@ describe("teams service", () => {
         name: "Design",
         color: "#ff0000",
         members: [{ user: { id: "u1", name: "Alice" } }],
-        permissions: [{ resourceId: "ch1", level: "edit" }],
+        permissions: [{ resourceId: "ch1", actions: ["view", "edit"] }],
         _count: { members: 1 },
       },
     ];
@@ -163,7 +163,7 @@ describe("teams service", () => {
     expect(prisma.teamMember.delete).not.toHaveBeenCalled();
   });
 
-  it("sets permission with upsert for non-none levels", async () => {
+  it("sets permission with upsert for explicit actions", async () => {
     const prisma = createMockPrisma();
     const service = createTeamService(prisma);
     prisma.teamPermission.upsert.mockResolvedValue({
@@ -171,20 +171,20 @@ describe("teams service", () => {
       teamId: "team1",
       resourceId: "ch1",
       resourceType: "channel",
-      level: "edit",
+      actions: ["view", "edit"],
     });
 
     const result = await service.setPermission("team1", {
       resourceId: "ch1",
       resourceType: "channel",
-      level: "edit",
+      actions: ["edit", "view", "edit"],
     });
 
-    expect(result.level).toBe("edit");
+    expect(result.actions).toEqual(["view", "edit"]);
     expect(prisma.teamPermission.upsert).toHaveBeenCalled();
   });
 
-  it("deletes permission when level is none", async () => {
+  it("deletes permission when actions are empty", async () => {
     const prisma = createMockPrisma();
     const service = createTeamService(prisma);
     prisma.teamPermission.deleteMany.mockResolvedValue({ count: 1 });
@@ -192,7 +192,7 @@ describe("teams service", () => {
     const result = await service.setPermission("team1", {
       resourceId: "ch1",
       resourceType: "channel",
-      level: "none",
+      actions: [],
     });
 
     expect(result).toBeNull();
@@ -201,27 +201,27 @@ describe("teams service", () => {
     });
   });
 
-  it("resolves permission to best level across teams", async () => {
+  it("resolves permission to merged actions across teams", async () => {
     const prisma = createMockPrisma();
     const service = createTeamService(prisma);
     prisma.team.findMany.mockResolvedValue([
-      { permissions: [{ level: "view" }] },
-      { permissions: [{ level: "edit" }] },
+      { permissions: [{ actions: ["view", "comment"] }] },
+      { permissions: [{ actions: ["edit", "manage"] }] },
     ]);
 
     const result = await service.resolvePermission("u1", "ch1");
 
-    expect(result).toBe("edit");
+    expect(result).toEqual(["view", "comment", "edit", "manage"]);
   });
 
-  it("resolves permission to none when no teams match", async () => {
+  it("resolves permission to empty actions when no teams match", async () => {
     const prisma = createMockPrisma();
     const service = createTeamService(prisma);
     prisma.team.findMany.mockResolvedValue([]);
 
     const result = await service.resolvePermission("u1", "ch1");
 
-    expect(result).toBe("none");
+    expect(result).toEqual([]);
   });
 
   it("gets resource teams", async () => {

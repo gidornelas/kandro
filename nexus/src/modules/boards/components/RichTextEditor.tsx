@@ -1,9 +1,24 @@
 import React from 'react'
 
-function ToolbarBtn({ cmd, arg, icon, label, onClick }: { cmd: string; arg?: string; icon: string; label: string; onClick: (cmd: string, arg?: string) => void }) {
+function ToolbarBtn({
+  cmd,
+  arg,
+  icon,
+  label,
+  disabled = false,
+  onClick,
+}: {
+  cmd: string
+  arg?: string
+  icon: string
+  label: string
+  disabled?: boolean
+  onClick: (cmd: string, arg?: string) => void
+}) {
   return (
     <button
       title={label}
+      disabled={disabled}
       onClick={() => onClick(cmd, arg)}
       style={{
         width: '28px',
@@ -16,21 +31,29 @@ function ToolbarBtn({ cmd, arg, icon, label, onClick }: { cmd: string; arg?: str
         fontWeight: cmd === 'bold' || cmd === 'formatBlock' ? 700 : 400,
         fontStyle: cmd === 'italic' ? 'italic' : 'normal',
         textDecoration: cmd === 'underline' ? 'underline' : cmd === 'strikeThrough' ? 'line-through' : 'none',
-        cursor: 'pointer',
+        cursor: disabled ? 'default' : 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         transition: 'all .12s',
+        opacity: disabled ? 0.45 : 1,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(47,128,237,.12)'; e.currentTarget.style.color = 'var(--color-accent)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)' }}
+      onMouseEnter={(e) => {
+        if (disabled) return
+        e.currentTarget.style.background = 'rgba(47,128,237,.12)'
+        e.currentTarget.style.color = 'var(--color-accent)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'transparent'
+        e.currentTarget.style.color = 'var(--color-text-secondary)'
+      }}
     >
       {icon}
     </button>
   )
 }
 
-export function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+export function RichTextEditor({ value, onChange, readOnly = false }: { value: string; onChange: (html: string) => void; readOnly?: boolean }) {
   const editorRef = React.useRef<HTMLDivElement>(null)
   const [focused, setFocused] = React.useState(false)
 
@@ -61,34 +84,37 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
           flexWrap: 'wrap',
         }}
       >
-        <ToolbarBtn cmd="bold" icon="B" label="Negrito" onClick={exec} />
-        <ToolbarBtn cmd="italic" icon="I" label="Itálico" onClick={exec} />
-        <ToolbarBtn cmd="underline" icon="U" label="Sublinhado" onClick={exec} />
-        <ToolbarBtn cmd="strikeThrough" icon="S" label="Tachado" onClick={exec} />
+        <ToolbarBtn cmd="bold" icon="B" label="Negrito" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="italic" icon="I" label="Itálico" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="underline" icon="U" label="Sublinhado" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="strikeThrough" icon="S" label="Tachado" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="formatBlock" arg="H1" icon="H1" label="Título 1" onClick={exec} />
-        <ToolbarBtn cmd="formatBlock" arg="H2" icon="H2" label="Título 2" onClick={exec} />
+        <ToolbarBtn cmd="formatBlock" arg="H1" icon="H1" label="Título 1" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="formatBlock" arg="H2" icon="H2" label="Título 2" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="insertUnorderedList" icon="•" label="Lista" onClick={exec} />
-        <ToolbarBtn cmd="insertOrderedList" icon="1." label="Lista numerada" onClick={exec} />
+        <ToolbarBtn cmd="insertUnorderedList" icon="•" label="Lista" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="insertOrderedList" icon="1." label="Lista numerada" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="justifyLeft" icon="⬅" label="Alinhar esquerda" onClick={exec} />
-        <ToolbarBtn cmd="justifyCenter" icon="↔" label="Centralizar" onClick={exec} />
-        <ToolbarBtn cmd="justifyRight" icon="➡" label="Alinhar direita" onClick={exec} />
+        <ToolbarBtn cmd="justifyLeft" icon="⬅" label="Alinhar esquerda" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="justifyCenter" icon="↔" label="Centralizar" disabled={readOnly} onClick={exec} />
+        <ToolbarBtn cmd="justifyRight" icon="➡" label="Alinhar direita" disabled={readOnly} onClick={exec} />
         <span style={{ width: '1px', height: '18px', background: 'var(--color-border-subtle)', margin: '0 4px' }} />
-        <ToolbarBtn cmd="removeFormat" icon="✕" label="Limpar formatação" onClick={exec} />
+        <ToolbarBtn cmd="removeFormat" icon="✕" label="Limpar formatação" disabled={readOnly} onClick={exec} />
       </div>
 
       {/* Editor */}
       <div
         ref={editorRef}
-        contentEditable
+        contentEditable={!readOnly}
         onFocus={() => setFocused(true)}
         onBlur={() => {
           setFocused(false)
           if (editorRef.current) onChange(editorRef.current.innerHTML)
         }}
-        onInput={() => { if (editorRef.current) onChange(editorRef.current.innerHTML) }}
+        onInput={() => {
+          if (readOnly || !editorRef.current) return
+          onChange(editorRef.current.innerHTML)
+        }}
         dangerouslySetInnerHTML={{ __html: value }}
         style={{
           minHeight: '100px',

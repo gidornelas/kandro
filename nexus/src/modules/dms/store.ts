@@ -29,7 +29,7 @@ function toMessage(message: DmsApi.DmMessage): Message {
 }
 
 export const useDmStore = create<DmState>((set, get) => ({
-  conversations: Object.fromEntries(DMS.map((d) => [d.id, d.messages])),
+  conversations: {},
   isLoading: false,
   error: null,
 
@@ -46,6 +46,17 @@ export const useDmStore = create<DmState>((set, get) => ({
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar conversa'
+      if (useAuthStore.getState().isMockMode) {
+        const mockConversation = DMS.find((dm) => dm.id === dmId)?.messages ?? []
+        set({
+          conversations: {
+            ...get().conversations,
+            [dmId]: mockConversation,
+          },
+          isLoading: false,
+        })
+        return
+      }
       set({ error: message, isLoading: false })
     }
   },
@@ -59,7 +70,12 @@ export const useDmStore = create<DmState>((set, get) => ({
           [dmId]: [...(get().conversations[dmId] || []), toMessage(created)],
         },
       })
-    } catch {
+    } catch (err) {
+      if (!useAuthStore.getState().isMockMode) {
+        const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem direta'
+        set({ error: message })
+        return
+      }
       const msg: Message = {
         id: `dm-${++dmMsgId}`,
         channel: dmId,

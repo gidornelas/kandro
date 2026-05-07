@@ -69,7 +69,7 @@ function toMessage(message: MessagesApi.MessageResponse): Message {
 }
 
 export const useMessagesStore = create<MessagesState>((set, get) => ({
-  messages: [...MESSAGES],
+  messages: [],
   isLoading: false,
   error: null,
 
@@ -87,6 +87,17 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar mensagens'
+      if (useAuthStore.getState().isMockMode) {
+        const mockMessages = MESSAGES.filter((item) => item.channel === channelId)
+        set({
+          messages: [
+            ...get().messages.filter((item) => item.channel !== channelId),
+            ...mockMessages,
+          ],
+          isLoading: false,
+        })
+        return
+      }
       set({ error: message, isLoading: false })
     }
   },
@@ -95,7 +106,12 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     try {
       const created = await MessagesApi.create(channelId, text)
       set({ messages: [...get().messages, toMessage(created)] })
-    } catch {
+    } catch (err) {
+      if (!useAuthStore.getState().isMockMode) {
+        const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem'
+        set({ error: message })
+        return
+      }
       const msg: Message = {
         id: String(++msgIdCounter),
         channel: channelId,
@@ -120,7 +136,12 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
           message.id === messageId ? { ...message, reactions: toReactions(response.reactions) } : message
         ),
       })
-    } catch {
+    } catch (err) {
+      if (!useAuthStore.getState().isMockMode) {
+        const message = err instanceof Error ? err.message : 'Erro ao reagir à mensagem'
+        set({ error: message })
+        return
+      }
       set({
         messages: get().messages.map((message) => {
           if (message.id !== messageId) return message

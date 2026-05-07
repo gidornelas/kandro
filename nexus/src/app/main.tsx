@@ -3,8 +3,12 @@ import ReactDOM from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import { queryClient } from '../core/queryClient'
+import { getStoredSettingsSnapshot } from '../modules/settings/store'
+import { applyThemeToDocument } from '../modules/settings/theme'
 import '../styles/tokens.css'
 import '../styles/globals.css'
+
+applyThemeToDocument(getStoredSettingsSnapshot().appearance.theme)
 
 const ReactQueryDevtools = import.meta.env.DEV
   ? lazy(() =>

@@ -303,8 +303,8 @@ model TeamPermission {
   teamId       String @map("team_id")
   team         Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   resourceId   String @map("resource_id")
-  resourceType String @map("resource_type") // channel | board | folder | doc
-  level        String @default("view")      // none | view | edit
+  resourceType String @map("resource_type") // channel | board | folder | doc | voice_room | settings | member_list | integration | announcement
+  actions      String[] @default([])
 
   @@unique([teamId, resourceId, resourceType])
   @@index([resourceId])

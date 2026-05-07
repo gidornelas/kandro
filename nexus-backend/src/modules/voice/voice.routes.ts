@@ -4,6 +4,7 @@ import { requireChannelAccess } from "../../middleware/authorize.js";
 import { createVoiceService } from "./voice.service.js";
 import { joinVoiceSchema, updateParticipantSchema } from "./voice.schema.js";
 import { ValidationError } from "../../lib/errors.js";
+import { env } from "../../config/env.js";
 
 export async function voiceRoutes(fastify: FastifyInstance) {
   const voiceService = createVoiceService(fastify.prisma);
@@ -64,6 +65,9 @@ export async function voiceRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { channelId } = request.params as { channelId: string };
       const roomName = `channel-${channelId}`;
+      if (!env.LIVEKIT_URL) {
+        throw new ValidationError("LiveKit URL não configurada");
+      }
 
       const token = await fastify.livekit.generateToken(
         request.user,
@@ -78,7 +82,7 @@ export async function voiceRoutes(fastify: FastifyInstance) {
       return reply.send({
         token,
         room: roomName,
-        url: process.env.LIVEKIT_URL || "",
+        url: env.LIVEKIT_URL,
       });
     }
   );

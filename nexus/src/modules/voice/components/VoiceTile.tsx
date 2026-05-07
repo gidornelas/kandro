@@ -1,28 +1,34 @@
 import { useVoiceStore, type VoiceParticipant } from '../store'
-import { USERS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
 import { WaveformBars } from './WaveformBars'
 
 export function VoiceTile({
   participant,
   size = 'md',
   onClick,
+  selected = false,
   showWaveform = true,
 }: {
   participant: VoiceParticipant
   size?: 'sm' | 'md' | 'lg'
   onClick?: () => void
+  selected?: boolean
   showWaveform?: boolean
 }) {
-  const user = USERS[participant.userId]
+  const user = useAppDataStore((s) => s.users[participant.userId])
   const activeSpeakerId = useVoiceStore((s) => s.activeSpeakerId)
   const isSpeaking = activeSpeakerId === participant.userId
 
   const sizeMap = { sm: { avatar: 40, font: 11 }, md: { avatar: 64, font: 13 }, lg: { avatar: 96, font: 16 } }
   const s = sizeMap[size]
+  const Component = onClick ? 'button' : 'div'
 
   return (
-    <div
+    <Component
+      {...(onClick ? { type: 'button' as const } : {})}
       onClick={onClick}
+      aria-label={onClick ? `Selecionar participante ${user?.name ?? participant.userId}` : undefined}
+      aria-pressed={onClick ? selected : undefined}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -31,13 +37,15 @@ export function VoiceTile({
         gap: '8px',
         padding: size === 'lg' ? '24px' : '12px',
         borderRadius: 'var(--radius-md)',
-        background: isSpeaking ? 'rgba(53,183,121,.08)' : 'rgba(255,255,255,.55)',
-        border: `1px solid ${isSpeaking ? 'rgba(53,183,121,.35)' : 'var(--color-border-subtle)'}`,
-        transition: 'all .2s',
+        background: selected ? 'var(--color-accent-soft)' : isSpeaking ? 'rgba(53,183,121,.08)' : 'rgba(255,255,255,.55)',
+        border: `1px solid ${selected ? 'var(--color-accent)' : isSpeaking ? 'rgba(53,183,121,.35)' : 'var(--color-border-subtle)'}`,
+        transition: 'background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease',
         cursor: onClick ? 'pointer' : 'default',
         position: 'relative',
         minHeight: size === 'lg' ? '280px' : size === 'md' ? '140px' : '72px',
         flex: size === 'lg' ? 1 : undefined,
+        fontFamily: 'var(--font-body)',
+        textAlign: 'center',
       }}
       onMouseEnter={(e) => {
         if (!onClick) return
@@ -47,8 +55,8 @@ export function VoiceTile({
         e.currentTarget.style.boxShadow = 'var(--shadow-soft)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = isSpeaking ? 'rgba(53,183,121,.08)' : 'rgba(255,255,255,.55)'
-        e.currentTarget.style.borderColor = isSpeaking ? 'rgba(53,183,121,.35)' : 'var(--color-border-subtle)'
+        e.currentTarget.style.background = selected ? 'var(--color-accent-soft)' : isSpeaking ? 'rgba(53,183,121,.08)' : 'rgba(255,255,255,.55)'
+        e.currentTarget.style.borderColor = selected ? 'var(--color-accent)' : isSpeaking ? 'rgba(53,183,121,.35)' : 'var(--color-border-subtle)'
         e.currentTarget.style.transform = 'none'
         e.currentTarget.style.boxShadow = 'none'
       }}
@@ -67,7 +75,7 @@ export function VoiceTile({
           color: '#fff',
           position: 'relative',
           border: participant.cameraOn ? `3px solid var(--color-success)` : '3px solid transparent',
-          boxShadow: isSpeaking ? '0 0 0 4px rgba(53,183,121,.20)' : 'none',
+          boxShadow: selected ? '0 0 0 4px rgba(47,128,237,.16)' : isSpeaking ? '0 0 0 4px rgba(53,183,121,.20)' : 'none',
           transition: 'box-shadow .3s, border-color .3s',
         }}
       >
@@ -114,6 +122,6 @@ export function VoiceTile({
       {showWaveform && (
         <WaveformBars active={isSpeaking} />
       )}
-    </div>
+    </Component>
   )
 }

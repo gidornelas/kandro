@@ -1,87 +1,122 @@
 import React from 'react'
+import { ConfirmDialog } from '../../../design-system/ConfirmDialog'
 import { useFilesStore } from '../store'
-import { TEAMS } from '../../../shared/mocks'
+import { useAppDataStore } from '../../app-data/store'
 import { Skeleton } from '../../../design-system/Skeleton'
 import { EmptyState } from '../../../design-system/EmptyState'
 
-const FileItem = React.memo(function FileItem({ file, onDelete }: { file: { id: string; name: string; type: string; icon: string; size?: string; itemCount?: number; uploadedAt?: string; restricted: boolean; teamIds: string[] }; onDelete?: () => void }) {
-  const teamNames = file.teamIds.map((tid) => TEAMS.find((t) => t.id === tid)?.name).filter(Boolean)
+const FileItem = React.memo(function FileItem({
+  file,
+  onDelete,
+  canDelete,
+}: {
+  file: { id: string; name: string; type: string; icon: string; size?: string; itemCount?: number; uploadedAt?: string; restricted: boolean; teamIds: string[] }
+  onDelete?: () => void | Promise<void>
+  canDelete?: boolean
+}) {
+  const teams = useAppDataStore((s) => s.teams)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+  const teamNames = file.teamIds.map((tid) => teams.find((team) => team.id === tid)?.name).filter(Boolean)
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '10px 14px',
-        borderRadius: '10px',
-        background: 'var(--color-surface-elevated)',
-        border: '1px solid var(--color-border-subtle)',
-        cursor: 'pointer',
-        transition: 'all .15s',
-        position: 'relative',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--color-surface-strong)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'var(--color-surface-elevated)'
-      }}
-    >
-      <span style={{ fontSize: '22px' }}>{file.icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)' }}>{file.name}</div>
-        <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
-          {file.type === 'folder' ? `${file.itemCount} itens` : file.size}
-          {file.uploadedAt && ` · ${file.uploadedAt}`}
-          {teamNames.length > 0 && ` · ${teamNames.join(', ')}`}
+    <>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '10px 14px',
+          borderRadius: '10px',
+          background: 'var(--color-surface-elevated)',
+          border: '1px solid var(--color-border-subtle)',
+          cursor: 'pointer',
+          transition: 'background .15s ease, border-color .15s ease',
+          position: 'relative',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--color-surface-strong)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--color-surface-elevated)'
+        }}
+      >
+        <span style={{ fontSize: '22px' }}>{file.icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)' }}>{file.name}</div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
+            {file.type === 'folder' ? `${file.itemCount} itens` : file.size}
+            {file.uploadedAt && ` · ${file.uploadedAt}`}
+            {teamNames.length > 0 && ` · ${teamNames.join(', ')}`}
+          </div>
         </div>
+        {file.restricted && (
+          <span
+            style={{
+              fontSize: '10px',
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: 'var(--color-danger-soft)',
+              border: '1px solid var(--color-danger-border)',
+              color: 'var(--color-danger)',
+            }}
+          >
+            Restrito
+          </span>
+        )}
+        {onDelete && canDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsDeleteDialogOpen(true)
+            }}
+            aria-label={`Excluir arquivo ${file.name}`}
+            title="Excluir arquivo"
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
+              border: '1px solid var(--color-danger-border)',
+              background: 'var(--color-danger-soft)',
+              color: 'var(--color-danger)',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background .18s ease, border-color .18s ease, color .18s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(204,75,75,.2)'
+              e.currentTarget.style.borderColor = 'var(--color-danger)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-danger-soft)'
+              e.currentTarget.style.borderColor = 'var(--color-danger-border)'
+            }}
+          >
+            🗑
+          </button>
+        )}
       </div>
-      {file.restricted && (
-        <span
-          style={{
-            fontSize: '10px',
-            padding: '2px 8px',
-            borderRadius: '999px',
-            background: 'var(--color-danger-soft)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          Restrito
-        </span>
-      )}
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          style={{
-            width: '22px',
-            height: '22px',
-            borderRadius: '6px',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--color-text-tertiary)',
-            fontSize: '12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--color-danger-soft)'; e.currentTarget.style.color = 'var(--color-danger)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-tertiary)' }}
-        >
-          🗑
-        </button>
-      )}
-    </div>
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Excluir arquivo"
+        description={`O arquivo "${file.name}" será removido permanentemente.`}
+        confirmLabel="Excluir arquivo"
+        variant="danger"
+        onConfirm={async () => {
+          setIsDeleteDialogOpen(false)
+          await onDelete?.()
+        }}
+      />
+    </>
   )
 })
 
-export function FilesView() {
+export function FilesView({ canView = true, canManage = true }: { canView?: boolean; canManage?: boolean }) {
   const items = useFilesStore((s) => s.items)
   const uploadFile = useFilesStore((s) => s.uploadFile)
   const deleteFile = useFilesStore((s) => s.deleteFile)
@@ -95,6 +130,7 @@ export function FilesView() {
   }, [loadFiles])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canManage) return
     const files = e.target.files
     if (!files || files.length === 0) return
 
@@ -122,15 +158,16 @@ export function FilesView() {
         <span style={{ fontSize: '14px', fontWeight: 600 }}>Arquivos</span>
         <button
           onClick={() => fileInputRef.current?.click()}
+          disabled={!canManage}
           style={{
             padding: '6px 14px',
             borderRadius: '10px',
-            background: 'var(--color-accent)',
+            background: canManage ? 'var(--color-accent)' : 'var(--color-border-subtle)',
             color: '#fff',
             border: 'none',
             fontSize: '12px',
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: canManage ? 'pointer' : 'default',
           }}
         >
           + Upload
@@ -139,12 +176,13 @@ export function FilesView() {
       </div>
 
       <div style={{ flex: 1, padding: '16px 20px', overflowY: 'auto' }}>
-        {uploading && (
+        {!canView ? (
+          <EmptyState icon="🔒" title="Arquivos restritos" description="Sua equipe ainda não pode visualizar os arquivos deste projeto." />
+        ) : uploading ? (
           <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'var(--color-accent-soft)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-accent)' }}>
             Uploading...
           </div>
-        )}
-        {isLoading ? (
+        ) : isLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <Skeleton height={50} count={6} />
           </div>
@@ -153,7 +191,7 @@ export function FilesView() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {items.map((file) => (
-              <FileItem key={file.id} file={file} onDelete={() => void deleteFile(file.id)} />
+              <FileItem key={file.id} file={file} canDelete={canManage} onDelete={() => void deleteFile(file.id)} />
             ))}
           </div>
         )}
