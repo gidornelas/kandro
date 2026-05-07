@@ -2,11 +2,11 @@ import { apiClient } from '../../core/api/client'
 import type { Project } from '../../shared/types/domain'
 
 export function list(workspaceId: string) {
-  return apiClient.get<Project[]>(`/api/workspaces/${workspaceId}/projects`)
+  return apiClient.get<Project[]>(`/api/projects?workspaceId=${encodeURIComponent(workspaceId)}`)
 }
 
 export function create(workspaceId: string, data: { name: string; status?: string; dateRange?: string }) {
-  return apiClient.post<Project>(`/api/workspaces/${workspaceId}/projects`, data)
+  return apiClient.post<Project>(`/api/projects?workspaceId=${encodeURIComponent(workspaceId)}`, data)
 }
 
 export function update(projectId: string, data: { name?: string; status?: string; dateRange?: string }) {
