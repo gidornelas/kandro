@@ -119,9 +119,9 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
       }))
       const { activeSpeakerId, screenSharerId } = deriveParticipantState(participants, get().activeSpeakerId, get().screenSharerId)
       set({
-        active: true,
+        active: false,
         layout: screenSharerId ? 'screen' : 'voice',
-        connectionState: 'connected',
+        connectionState: 'connecting',
         token: tokenData.token,
         channelId,
         room: tokenData.room,

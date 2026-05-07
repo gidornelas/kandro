@@ -52,7 +52,7 @@ export function VoiceRoom() {
   }, [active, tickTimer])
 
   const ActiveLayout = LayoutMap[layout]
-  const hasLiveKitRoom = Boolean(active && token && url && !isMockMode)
+  const hasLiveKitRoom = Boolean(channelId && token && url && !isMockMode)
   const room = React.useMemo(() => {
     if (!hasLiveKitRoom || !token || !url) return null
     const voiceVideo = useSettingsStore.getState().voiceVideo
@@ -100,6 +100,7 @@ export function VoiceRoom() {
               video={cameraEnabled}
               style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}
               onError={(liveKitError) => {
+                if (liveKitError.message === 'Client initiated disconnect') return
                 useVoiceStore.setState({
                   error: liveKitError.message || 'Erro ao conectar à sala de mídia',
                   connectionState: 'error',
