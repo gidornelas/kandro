@@ -85,6 +85,23 @@ function deriveParticipantState(participants: VoiceParticipant[], currentSpeaker
   return { activeSpeakerId, screenSharerId }
 }
 
+function ensureCurrentUserParticipant(
+  participants: VoiceParticipant[],
+  options: { micEnabled: boolean; cameraEnabled: boolean; screenEnabled: boolean },
+) {
+  const userId = useAuthStore.getState().user?.id
+  if (!userId || participants.some((participant) => participant.userId === userId)) return participants
+  return [
+    ...participants,
+    {
+      userId,
+      muted: !options.micEnabled,
+      cameraOn: options.cameraEnabled,
+      sharing: options.screenEnabled,
+    },
+  ]
+}
+
 export const useVoiceStore = create<VoiceState>((set, get) => ({
   ...resetVoiceState(),
 
@@ -107,16 +124,19 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
   connect: async (channelId) => {
     set({ connectionState: 'connecting', error: null })
     try {
-      const [tokenData, session] = await Promise.all([
-        getVoiceToken(channelId),
-        getVoiceSession(channelId),
-      ])
-      const participants = session.participants.map((participant) => ({
+      const voiceState = get()
+      const tokenData = await getVoiceToken(channelId)
+      const session = await getVoiceSession(channelId)
+      const participants = ensureCurrentUserParticipant(session.participants.map((participant) => ({
         userId: participant.userId,
         muted: participant.muted,
         cameraOn: participant.cameraOn,
         sharing: participant.sharing,
-      }))
+      })), {
+        micEnabled: voiceState.micEnabled,
+        cameraEnabled: voiceState.cameraEnabled,
+        screenEnabled: voiceState.screenEnabled,
+      })
       const { activeSpeakerId, screenSharerId } = deriveParticipantState(participants, get().activeSpeakerId, get().screenSharerId)
       set({
         active: false,

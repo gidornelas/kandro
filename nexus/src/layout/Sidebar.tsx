@@ -289,6 +289,9 @@ export function Sidebar({ width }: { width: number }) {
   const openProject = useUIStore((s) => s.openProject)
   const openVoice = useUIStore((s) => s.openVoice)
   const joinRoom = useVoiceStore((s) => s.joinRoom)
+  const voiceChannelId = useVoiceStore((s) => s.channelId)
+  const voiceParticipants = useVoiceStore((s) => s.participants)
+  const voiceConnectionState = useVoiceStore((s) => s.connectionState)
   const channels = useAppDataStore((s) => s.channels)
   const createChannel = useAppDataStore((s) => s.createChannel)
   const createProject = useAppDataStore((s) => s.createProject)
@@ -309,6 +312,7 @@ export function Sidebar({ width }: { width: number }) {
   const projectChannels = channels.filter((c) => c.type === 'board' && canOpenResource(c.id, 'board'))
   const textChannels = channels.filter((c) => c.type === 'text' && canOpenResource(c.id, 'channel'))
   const voiceChannels = channels.filter((c) => c.type === 'voice' && canOpenResource(c.id, 'voice_room'))
+  const activeVoiceParticipantIds = voiceChannelId ? voiceParticipants.map((participant) => participant.userId) : []
 
   const toggleCreateSection = (section: 'project' | 'channel' | 'voice') => {
     setCreatingSection((current) => current === section ? null : section)
@@ -472,16 +476,81 @@ export function Sidebar({ width }: { width: number }) {
             />
           )}
           {voiceChannels.map((ch) => (
-            <SidebarItem
-              key={ch.id}
-              icon="🔊"
-              label={ch.name}
-              active={mainMode === 'voice' && activeChannelId === ch.id}
-              onClick={() => {
-                openVoice(ch.id)
-                joinRoom(ch.id)
-              }}
-            />
+            <div key={ch.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <SidebarItem
+                icon="🔊"
+                label={ch.name}
+                badge={voiceChannelId === ch.id ? activeVoiceParticipantIds.length || undefined : undefined}
+                active={mainMode === 'voice' && activeChannelId === ch.id}
+                onClick={() => {
+                  openVoice(ch.id)
+                  joinRoom(ch.id)
+                }}
+              />
+              {voiceChannelId === ch.id && (voiceConnectionState !== 'idle' || activeVoiceParticipantIds.length > 0) && (
+                <div
+                  style={{
+                    marginLeft: '18px',
+                    paddingLeft: '12px',
+                    borderLeft: '1px solid var(--color-border-subtle)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  {voiceParticipants.map((participant) => {
+                    const participantUser = users[participant.userId]
+                    const isCurrentUser = participant.userId === user?.id
+                    return (
+                      <div
+                        key={participant.userId}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          minHeight: '26px',
+                          padding: '2px 0',
+                          color: 'var(--color-text-secondary)',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              background: participantUser?.color || 'var(--color-accent)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '7px',
+                              fontWeight: 700,
+                              color: '#fff',
+                            }}
+                          >
+                            {participantUser?.initials || '?'}
+                          </div>
+                          <StatusDot status={participantUser?.status} />
+                        </div>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {participantUser?.name || participant.userId}
+                          {isCurrentUser ? ' (você)' : ''}
+                        </span>
+                        <span style={{ fontSize: '11px', opacity: 0.78, flexShrink: 0 }}>
+                          {participant.sharing ? '🖥' : participant.cameraOn ? '📹' : participant.muted ? '🔇' : '🎙'}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {voiceParticipants.length === 0 && (
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', padding: '2px 0' }}>
+                      {voiceConnectionState === 'connecting' ? 'Entrando na sala...' : 'Sem participantes visíveis ainda'}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </Section>
 
