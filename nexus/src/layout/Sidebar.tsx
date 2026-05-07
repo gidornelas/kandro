@@ -92,6 +92,120 @@ function Section({ id, label, children, action }: { id: string; label: string; c
   )
 }
 
+function SectionActionButton({ label, onClick }: { label: string; onClick: (event: React.MouseEvent<HTMLButtonElement>) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        width: '18px',
+        height: '18px',
+        borderRadius: '6px',
+        border: '1px solid var(--color-border-subtle)',
+        background: 'rgba(255,255,255,.42)',
+        color: 'var(--color-text-tertiary)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '11px',
+        cursor: 'pointer',
+        flexShrink: 0,
+        marginRight: '4px',
+      }}
+    >
+      +
+    </button>
+  )
+}
+
+function InlineCreateForm({
+  value,
+  placeholder,
+  error,
+  onChange,
+  onConfirm,
+  onCancel,
+}: {
+  value: string
+  placeholder: string
+  error: string | null
+  onChange: (value: string) => void
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div style={{ padding: '4px 6px 8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <input
+        autoFocus
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') onConfirm()
+          if (event.key === 'Escape') onCancel()
+        }}
+        style={{
+          width: '100%',
+          minHeight: '36px',
+          padding: '0 10px',
+          borderRadius: '10px',
+          border: '1px solid var(--color-accent-border)',
+          background: 'rgba(255,255,255,.82)',
+          color: 'var(--color-text-primary)',
+          fontSize: '12px',
+          fontFamily: 'var(--font-body)',
+          outline: 'none',
+        }}
+      />
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={!value.trim()}
+          style={{
+            flex: 1,
+            minHeight: '32px',
+            borderRadius: '8px',
+            border: '1px solid var(--color-accent)',
+            background: value.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: value.trim() ? 'pointer' : 'default',
+          }}
+        >
+          Criar
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            minWidth: '64px',
+            minHeight: '32px',
+            borderRadius: '8px',
+            border: '1px solid var(--color-border-subtle)',
+            background: 'rgba(255,255,255,.42)',
+            color: 'var(--color-text-secondary)',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Cancelar
+        </button>
+      </div>
+      {error && (
+        <span style={{ fontSize: '11px', color: 'var(--color-danger)', lineHeight: 1.4 }}>
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function SidebarItem({
   icon,
   label,
@@ -177,14 +291,15 @@ export function Sidebar({ width }: { width: number }) {
   const joinRoom = useVoiceStore((s) => s.joinRoom)
   const channels = useAppDataStore((s) => s.channels)
   const createChannel = useAppDataStore((s) => s.createChannel)
+  const createProject = useAppDataStore((s) => s.createProject)
   const dms = useAppDataStore((s) => s.dms)
   const teams = useAppDataStore((s) => s.teams)
   const users = useAppDataStore((s) => s.users)
   const workspaces = useAppDataStore((s) => s.workspaces)
   const activeWorkspaceId = useAppDataStore((s) => s.activeWorkspaceId)
   const appDataError = useAppDataStore((s) => s.error)
-  const [creatingVoiceRoom, setCreatingVoiceRoom] = React.useState(false)
-  const [newVoiceRoomName, setNewVoiceRoomName] = React.useState('')
+  const [creatingSection, setCreatingSection] = React.useState<'project' | 'channel' | 'voice' | null>(null)
+  const [draftName, setDraftName] = React.useState('')
 
   const workspace = workspaces.find((item) => item.id === activeWorkspaceId)
   const canOpenResource = (resourceId: string, resourceType: 'board' | 'channel' | 'voice_room') => {
@@ -195,17 +310,36 @@ export function Sidebar({ width }: { width: number }) {
   const textChannels = channels.filter((c) => c.type === 'text' && canOpenResource(c.id, 'channel'))
   const voiceChannels = channels.filter((c) => c.type === 'voice' && canOpenResource(c.id, 'voice_room'))
 
-  const handleCreateVoiceRoom = async () => {
-    const name = newVoiceRoomName.trim()
+  const toggleCreateSection = (section: 'project' | 'channel' | 'voice') => {
+    setCreatingSection((current) => current === section ? null : section)
+    setDraftName('')
+  }
+
+  const closeCreateSection = () => {
+    setCreatingSection(null)
+    setDraftName('')
+  }
+
+  const handleCreate = async (section: 'project' | 'channel' | 'voice') => {
+    const name = draftName.trim()
     if (!name) return
-    const createdChannel = await createChannel({
-      name,
-      type: 'voice',
-      description: `Sala de voz ${name}`,
-    })
+    const createdChannel = section === 'project'
+      ? await createProject({ name, description: `Board do projeto ${name}` })
+      : await createChannel({
+          name,
+          type: section === 'channel' ? 'text' : 'voice',
+          description: section === 'channel' ? `Canal de texto ${name}` : `Sala de voz ${name}`,
+        })
     if (!createdChannel) return
-    setNewVoiceRoomName('')
-    setCreatingVoiceRoom(false)
+    closeCreateSection()
+    if (section === 'project') {
+      openProject(createdChannel.id)
+      return
+    }
+    if (section === 'channel') {
+      openChannel(createdChannel.id)
+      return
+    }
     openVoice(createdChannel.id)
     joinRoom(createdChannel.id)
   }
@@ -260,7 +394,24 @@ export function Sidebar({ width }: { width: number }) {
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 44px' }}>
-        <Section id="proj" label="Projetos">
+        <Section
+          id="proj"
+          label="Projetos"
+          action={<SectionActionButton label="Criar projeto" onClick={(event) => {
+            event.stopPropagation()
+            toggleCreateSection('project')
+          }} />}
+        >
+          {creatingSection === 'project' && (
+            <InlineCreateForm
+              value={draftName}
+              placeholder="Nome do projeto..."
+              error={appDataError}
+              onChange={setDraftName}
+              onConfirm={() => void handleCreate('project')}
+              onCancel={closeCreateSection}
+            />
+          )}
           {projectChannels.map((ch) => (
             <SidebarItem
               key={ch.id}
@@ -272,7 +423,24 @@ export function Sidebar({ width }: { width: number }) {
           ))}
         </Section>
 
-        <Section id="com" label="Comunicação">
+        <Section
+          id="com"
+          label="Comunicação"
+          action={<SectionActionButton label="Criar canal de texto" onClick={(event) => {
+            event.stopPropagation()
+            toggleCreateSection('channel')
+          }} />}
+        >
+          {creatingSection === 'channel' && (
+            <InlineCreateForm
+              value={draftName}
+              placeholder="Nome do canal..."
+              error={appDataError}
+              onChange={setDraftName}
+              onConfirm={() => void handleCreate('channel')}
+              onCancel={closeCreateSection}
+            />
+          )}
           {textChannels.map((ch) => (
             <SidebarItem
               key={ch.id}
@@ -288,110 +456,20 @@ export function Sidebar({ width }: { width: number }) {
         <Section
           id="voz"
           label="Voz & Reuniões"
-          action={(
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                setCreatingVoiceRoom((current) => !current)
-                setNewVoiceRoomName('')
-              }}
-              aria-label="Criar sala de voz"
-              title="Criar sala de voz"
-              style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '6px',
-                border: '1px solid var(--color-border-subtle)',
-                background: 'rgba(255,255,255,.42)',
-                color: 'var(--color-text-tertiary)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                cursor: 'pointer',
-                flexShrink: 0,
-                marginRight: '4px',
-              }}
-            >
-              +
-            </button>
-          )}
+          action={<SectionActionButton label="Criar sala de voz" onClick={(event) => {
+            event.stopPropagation()
+            toggleCreateSection('voice')
+          }} />}
         >
-          {creatingVoiceRoom && (
-            <div style={{ padding: '4px 6px 8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <input
-                autoFocus
-                type="text"
-                value={newVoiceRoomName}
-                placeholder="Nome da sala..."
-                onChange={(event) => setNewVoiceRoomName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') void handleCreateVoiceRoom()
-                  if (event.key === 'Escape') {
-                    setCreatingVoiceRoom(false)
-                    setNewVoiceRoomName('')
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  minHeight: '36px',
-                  padding: '0 10px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--color-accent-border)',
-                  background: 'rgba(255,255,255,.82)',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '12px',
-                  fontFamily: 'var(--font-body)',
-                  outline: 'none',
-                }}
-              />
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => void handleCreateVoiceRoom()}
-                  disabled={!newVoiceRoomName.trim()}
-                  style={{
-                    flex: 1,
-                    minHeight: '32px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-accent)',
-                    background: newVoiceRoomName.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
-                    color: '#fff',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: newVoiceRoomName.trim() ? 'pointer' : 'default',
-                  }}
-                >
-                  Criar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCreatingVoiceRoom(false)
-                    setNewVoiceRoomName('')
-                  }}
-                  style={{
-                    minWidth: '64px',
-                    minHeight: '32px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border-subtle)',
-                    background: 'rgba(255,255,255,.42)',
-                    color: 'var(--color-text-secondary)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancelar
-                </button>
-              </div>
-              {appDataError && (
-                <span style={{ fontSize: '11px', color: 'var(--color-danger)', lineHeight: 1.4 }}>
-                  {appDataError}
-                </span>
-              )}
-            </div>
+          {creatingSection === 'voice' && (
+            <InlineCreateForm
+              value={draftName}
+              placeholder="Nome da sala..."
+              error={appDataError}
+              onChange={setDraftName}
+              onConfirm={() => void handleCreate('voice')}
+              onCancel={closeCreateSection}
+            />
           )}
           {voiceChannels.map((ch) => (
             <SidebarItem

@@ -39,6 +39,7 @@ interface AppDataState {
   initialize: () => Promise<void>
   setActiveWorkspace: (workspaceId: string) => Promise<void>
   createChannel: (data: { name: string; type: 'text' | 'board' | 'voice'; description?: string; private?: boolean }) => Promise<Channel | null>
+  createProject: (data: { name: string; description?: string; private?: boolean }) => Promise<Channel | null>
   createTeam: (data: { name: string; color: string }) => Promise<void>
   updateTeam: (teamId: string, updates: { name?: string; color?: string }) => Promise<void>
   removeTeam: (teamId: string) => Promise<void>
@@ -144,6 +145,25 @@ function createLocalChannel(data: { name: string; type: 'text' | 'board' | 'voic
   }
 }
 
+function toDerivedProject(channel: Channel): Project {
+  return {
+    id: channel.id,
+    name: channel.name,
+    channelId: channel.id,
+    status: 'Em andamento',
+    dateRange: '',
+    memberIds: [],
+  }
+}
+
+function normalizeProjects(projects: Project[], channels: Channel[]) {
+  const projectIds = new Set(projects.map((project) => project.id))
+  const derivedProjects = channels
+    .filter((channel) => channel.type === 'board' && !projectIds.has(channel.id))
+    .map((channel) => toDerivedProject(channel))
+  return [...projects, ...derivedProjects]
+}
+
 function applyMockAppData() {
   const dms = DMS.map((dm) => ({ ...dm, messages: [] }))
   syncInitialSelection(CHANNELS, dms)
@@ -151,7 +171,7 @@ function applyMockAppData() {
     workspaces: [mockWorkspace],
     activeWorkspaceId: mockWorkspace.id,
     channels: CHANNELS,
-    projects: PROJECTS,
+    projects: normalizeProjects(PROJECTS, CHANNELS),
     teams: TEAMS,
     users: USERS,
     dms,
@@ -247,9 +267,13 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       }
       const mappedChannels = channels.map((channel) => toChannel(channel as ChannelResponse))
       const mappedDms = dms.map((dm) => toDm(dm, useAuthStore.getState().user?.id ?? ''))
+      const mappedProjects = normalizeProjects(
+        projects.map((project) => toProject(project as ProjectResponse)),
+        mappedChannels,
+      )
       set({
         channels: mappedChannels,
-        projects: projects.map((project) => toProject(project as ProjectResponse)),
+        projects: mappedProjects,
         teams: teams.map(toTeam),
         users,
         dms: mappedDms,
@@ -267,7 +291,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   },
 
   createChannel: async (data) => {
-    const workspaceId = get().activeWorkspaceId
+    const workspaceId = get().activeWorkspaceId ?? get().workspaces[0]?.id ?? null
     if (!workspaceId) {
       set({ error: 'Nenhum workspace ativo para criar canal' })
       return null
@@ -275,13 +299,23 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
 
     if (useAuthStore.getState().isMockMode) {
       const createdChannel = createLocalChannel(data)
-      set({ channels: [...get().channels, createdChannel], error: null })
+      set({
+        activeWorkspaceId: workspaceId,
+        channels: [...get().channels, createdChannel],
+        projects: createdChannel.type === 'board' ? normalizeProjects(get().projects, [...get().channels, createdChannel]) : get().projects,
+        error: null,
+      })
       return createdChannel
     }
 
     try {
       const createdChannel = toChannel(await ChannelsApi.create(workspaceId, data) as ChannelResponse)
-      set({ channels: [...get().channels, createdChannel], error: null })
+      set({
+        activeWorkspaceId: workspaceId,
+        channels: [...get().channels, createdChannel],
+        projects: createdChannel.type === 'board' ? normalizeProjects(get().projects, [...get().channels, createdChannel]) : get().projects,
+        error: null,
+      })
       return createdChannel
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar canal'
@@ -289,6 +323,14 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       return null
     }
   },
+
+  createProject: async (data) =>
+    get().createChannel({
+      name: data.name,
+      type: 'board',
+      description: data.description ?? `Board do projeto ${data.name}`,
+      private: data.private,
+    }),
 
   createTeam: async (data) => {
     const workspaceId = get().activeWorkspaceId
