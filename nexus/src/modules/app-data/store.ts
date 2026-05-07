@@ -38,6 +38,7 @@ interface AppDataState {
   error: string | null
   initialize: () => Promise<void>
   setActiveWorkspace: (workspaceId: string) => Promise<void>
+  createChannel: (data: { name: string; type: 'text' | 'board' | 'voice'; description?: string; private?: boolean }) => Promise<Channel | null>
   createTeam: (data: { name: string; color: string }) => Promise<void>
   updateTeam: (teamId: string, updates: { name?: string; color?: string }) => Promise<void>
   removeTeam: (teamId: string) => Promise<void>
@@ -129,6 +130,17 @@ function createLocalTeam(data: { name: string; color: string }): Team {
     color: data.color,
     memberIds: [],
     permissions: [],
+  }
+}
+
+function createLocalChannel(data: { name: string; type: 'text' | 'board' | 'voice'; description?: string; private?: boolean }): Channel {
+  return {
+    id: `channel-${Date.now()}`,
+    name: data.name,
+    type: data.type,
+    icon: data.type === 'text' ? '#' : data.type === 'board' ? '⊞' : '🔊',
+    private: data.private,
+    desc: data.description,
   }
 }
 
@@ -251,6 +263,30 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       }
       const message = err instanceof Error ? err.message : 'Erro ao carregar dados do workspace'
       set({ error: message, isLoading: false })
+    }
+  },
+
+  createChannel: async (data) => {
+    const workspaceId = get().activeWorkspaceId
+    if (!workspaceId) {
+      set({ error: 'Nenhum workspace ativo para criar canal' })
+      return null
+    }
+
+    if (useAuthStore.getState().isMockMode) {
+      const createdChannel = createLocalChannel(data)
+      set({ channels: [...get().channels, createdChannel], error: null })
+      return createdChannel
+    }
+
+    try {
+      const createdChannel = toChannel(await ChannelsApi.create(workspaceId, data) as ChannelResponse)
+      set({ channels: [...get().channels, createdChannel], error: null })
+      return createdChannel
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao criar canal'
+      set({ error: message })
+      return null
     }
   },
 

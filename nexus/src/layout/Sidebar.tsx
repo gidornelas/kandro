@@ -30,49 +30,59 @@ function Section({ id, label, children, action }: { id: string; label: string; c
 
   return (
     <div style={{ marginBottom: '4px' }}>
-      <button
-        type="button"
-        onClick={() => toggle(id)}
-        aria-expanded={!collapsed}
-        aria-controls={contentId}
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          padding: '5px 14px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          background: 'transparent',
-          border: 'none',
-          fontFamily: 'var(--font-body)',
-          textAlign: 'left',
+          padding: '0 14px',
         }}
       >
-        <span
+        <button
+          type="button"
+          onClick={() => toggle(id)}
+          aria-expanded={!collapsed}
+          aria-controls={contentId}
           style={{
-            fontSize: '10px',
-            fontWeight: 600,
-            letterSpacing: '.08em',
-            textTransform: 'uppercase',
-            color: 'var(--color-text-tertiary)',
+            display: 'flex',
+            alignItems: 'center',
             flex: 1,
+            minHeight: '28px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            background: 'transparent',
+            border: 'none',
+            fontFamily: 'var(--font-body)',
+            textAlign: 'left',
+            padding: '5px 0',
           }}
         >
-          {label}
-        </span>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-tertiary)',
+              flex: 1,
+            }}
+          >
+            {label}
+          </span>
+          <span
+            style={{
+              fontSize: '9px',
+              color: 'var(--color-text-tertiary)',
+              transition: 'transform .2s',
+              transform: collapsed ? 'rotate(-90deg)' : 'none',
+              marginLeft: '4px',
+            }}
+          >
+            ▾
+          </span>
+        </button>
         {action}
-        <span
-          style={{
-            fontSize: '9px',
-            color: 'var(--color-text-tertiary)',
-            transition: 'transform .2s',
-            transform: collapsed ? 'rotate(-90deg)' : 'none',
-            marginLeft: '4px',
-          }}
-        >
-          ▾
-        </span>
-      </button>
+      </div>
       {!collapsed && (
         <div id={contentId} style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
           {children}
@@ -166,11 +176,15 @@ export function Sidebar({ width }: { width: number }) {
   const openVoice = useUIStore((s) => s.openVoice)
   const joinRoom = useVoiceStore((s) => s.joinRoom)
   const channels = useAppDataStore((s) => s.channels)
+  const createChannel = useAppDataStore((s) => s.createChannel)
   const dms = useAppDataStore((s) => s.dms)
   const teams = useAppDataStore((s) => s.teams)
   const users = useAppDataStore((s) => s.users)
   const workspaces = useAppDataStore((s) => s.workspaces)
   const activeWorkspaceId = useAppDataStore((s) => s.activeWorkspaceId)
+  const appDataError = useAppDataStore((s) => s.error)
+  const [creatingVoiceRoom, setCreatingVoiceRoom] = React.useState(false)
+  const [newVoiceRoomName, setNewVoiceRoomName] = React.useState('')
 
   const workspace = workspaces.find((item) => item.id === activeWorkspaceId)
   const canOpenResource = (resourceId: string, resourceType: 'board' | 'channel' | 'voice_room') => {
@@ -180,6 +194,21 @@ export function Sidebar({ width }: { width: number }) {
   const projectChannels = channels.filter((c) => c.type === 'board' && canOpenResource(c.id, 'board'))
   const textChannels = channels.filter((c) => c.type === 'text' && canOpenResource(c.id, 'channel'))
   const voiceChannels = channels.filter((c) => c.type === 'voice' && canOpenResource(c.id, 'voice_room'))
+
+  const handleCreateVoiceRoom = async () => {
+    const name = newVoiceRoomName.trim()
+    if (!name) return
+    const createdChannel = await createChannel({
+      name,
+      type: 'voice',
+      description: `Sala de voz ${name}`,
+    })
+    if (!createdChannel) return
+    setNewVoiceRoomName('')
+    setCreatingVoiceRoom(false)
+    openVoice(createdChannel.id)
+    joinRoom(createdChannel.id)
+  }
 
   return (
     <div
@@ -256,7 +285,114 @@ export function Sidebar({ width }: { width: number }) {
           ))}
         </Section>
 
-        <Section id="voz" label="Voz & Reuniões">
+        <Section
+          id="voz"
+          label="Voz & Reuniões"
+          action={(
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                setCreatingVoiceRoom((current) => !current)
+                setNewVoiceRoomName('')
+              }}
+              aria-label="Criar sala de voz"
+              title="Criar sala de voz"
+              style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '6px',
+                border: '1px solid var(--color-border-subtle)',
+                background: 'rgba(255,255,255,.42)',
+                color: 'var(--color-text-tertiary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                cursor: 'pointer',
+                flexShrink: 0,
+                marginRight: '4px',
+              }}
+            >
+              +
+            </button>
+          )}
+        >
+          {creatingVoiceRoom && (
+            <div style={{ padding: '4px 6px 8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <input
+                autoFocus
+                type="text"
+                value={newVoiceRoomName}
+                placeholder="Nome da sala..."
+                onChange={(event) => setNewVoiceRoomName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') void handleCreateVoiceRoom()
+                  if (event.key === 'Escape') {
+                    setCreatingVoiceRoom(false)
+                    setNewVoiceRoomName('')
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  minHeight: '36px',
+                  padding: '0 10px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-accent-border)',
+                  background: 'rgba(255,255,255,.82)',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '12px',
+                  fontFamily: 'var(--font-body)',
+                  outline: 'none',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => void handleCreateVoiceRoom()}
+                  disabled={!newVoiceRoomName.trim()}
+                  style={{
+                    flex: 1,
+                    minHeight: '32px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-accent)',
+                    background: newVoiceRoomName.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: newVoiceRoomName.trim() ? 'pointer' : 'default',
+                  }}
+                >
+                  Criar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatingVoiceRoom(false)
+                    setNewVoiceRoomName('')
+                  }}
+                  style={{
+                    minWidth: '64px',
+                    minHeight: '32px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border-subtle)',
+                    background: 'rgba(255,255,255,.42)',
+                    color: 'var(--color-text-secondary)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+              {appDataError && (
+                <span style={{ fontSize: '11px', color: 'var(--color-danger)', lineHeight: 1.4 }}>
+                  {appDataError}
+                </span>
+              )}
+            </div>
+          )}
           {voiceChannels.map((ch) => (
             <SidebarItem
               key={ch.id}
