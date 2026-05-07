@@ -34,6 +34,7 @@ export const updateCardSchema = z.object({
   priority: z.string().optional(),
   priorityColor: z.string().optional(),
   due: z.string().datetime().optional(),
+  progress: z.number().min(0).max(100).optional(),
 });
 
 export const moveCardSchema = z.object({

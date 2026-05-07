@@ -400,7 +400,7 @@ export function Sidebar({ width }: { width: number }) {
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 44px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0 44px' }}>
         <Section
           id="proj"
           label="Projetos"

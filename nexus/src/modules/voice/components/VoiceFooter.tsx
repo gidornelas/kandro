@@ -17,16 +17,18 @@ export function VoiceFooter() {
   return (
     <div
       style={{
-        height: '62px',
+        minHeight: '62px',
         background: 'var(--color-surface)',
         borderTop: '1px solid var(--color-border-subtle)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '12px',
+        gap: '8px',
         flexShrink: 0,
         backdropFilter: 'var(--blur-panel)',
         position: 'relative',
+        flexWrap: 'wrap',
+        padding: '0 16px',
       }}
     >
       <div
@@ -70,9 +72,7 @@ export function VoiceFooter() {
         type="button"
         onClick={leaveRoom}
         style={{
-          position: 'absolute',
-          right: '16px',
-          padding: '8px 18px',
+          padding: '8px 16px',
           borderRadius: '10px',
           background: 'var(--color-danger)',
           color: '#fff',
@@ -83,6 +83,7 @@ export function VoiceFooter() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
+          flexShrink: 0,
         }}
       >
         <AppIcon name="logout" size={16} color="#fff" /> Sair
@@ -122,6 +123,13 @@ function ControlBtn({
         justifyContent: 'center',
         fontSize: '20px',
         transition: 'background .15s ease, border-color .15s ease, color .15s ease',
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = '0 0 0 4px rgba(47,128,237,.3)'
+        e.currentTarget.style.outline = 'none'
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = 'none'
       }}
     >
       {children}

@@ -18,6 +18,16 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
+        <style>{`
+          @media (max-width: 768px) {
+            [data-radix-dialog-content] {
+              width: calc(100vw - 32px) !important;
+              max-width: calc(100vw - 32px) !important;
+              max-height: calc(100vh - 32px) !important;
+              padding: 16px !important;
+            }
+          }
+        }`}</style>
         <Dialog.Overlay
           style={{
             position: 'fixed',
@@ -32,6 +42,10 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           <style>{`@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
         </Dialog.Overlay>
         <Dialog.Content
+          aria-modal="true"
+          role="dialog"
+          aria-labelledby={title ? 'modal-title' : undefined}
+          aria-describedby={description ? 'modal-description' : undefined}
           style={{
             position: 'fixed',
             top: '50%',
@@ -58,6 +72,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           <style>{`@keyframes scaleIn { from { opacity: 0; transform: translate(-50%,-50%) scale(.96) } to { opacity: 1; transform: translate(-50%,-50%) scale(1) } }`}</style>
           {title && (
             <Dialog.Title
+              id="modal-title"
               style={{
                 fontSize: '15px',
                 fontWeight: 700,
@@ -71,6 +86,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           )}
           {description && (
             <Dialog.Description
+              id="modal-description"
               style={{
                 fontSize: '13px',
                 color: 'var(--color-text-tertiary)',

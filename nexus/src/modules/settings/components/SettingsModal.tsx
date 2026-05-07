@@ -1175,14 +1175,29 @@ export function SettingsModal() {
       width="min(1080px, calc(100vw - 40px))"
       footer={<Button type="button" variant="primary" onClick={closeSettings}>Fechar</Button>}
     >
-      <div style={{ display: 'flex', gap: '24px', minHeight: '420px', flexWrap: 'wrap' }}>
-        <aside style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .settings-content {
+            flex-direction: column !important;
+          }
+          .settings-sidebar {
+            width: 100% !important;
+            order: -1 !important;
+          }
+          .settings-panel {
+            width: 100% !important;
+            min-width: unset !important;
+          }
+        }
+      `}</style>
+      <div className="settings-content" style={{ display: 'flex', gap: '24px', minHeight: '420px', flexWrap: 'wrap' }}>
+        <aside className="settings-sidebar" style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <SectionButton section="appearance" label="Aparência" />
           <SectionButton section="voice-video" label="Voz e vídeo" />
           <SectionButton section="members" label="Membros" />
           <SectionButton section="teams" label="Equipes" />
         </aside>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="settings-panel" style={{ flex: 1, minWidth: 0 }}>
           {activeSection === 'appearance' && <AppearanceSettingsPanel />}
           {activeSection === 'voice-video' && <VoiceVideoSettingsPanel />}
           {activeSection === 'members' && <MemberSettingsPanel />}

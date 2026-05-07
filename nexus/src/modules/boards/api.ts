@@ -90,6 +90,7 @@ export interface UpdateCardInput {
   priority?: string
   priorityColor?: string
   due?: string
+  progress?: number
 }
 
 export interface MoveCardInput {

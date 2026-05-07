@@ -7,10 +7,12 @@ import * as DmsApi from './api'
 interface DmState {
   conversations: Record<string, Message[]>
   isLoading: boolean
+  pendingRoomId: string | null
   error: string | null
   loadMessages: (dmId: string) => Promise<void>
-  sendDm: (dmId: string, text: string) => Promise<void>
+  sendDm: (dmId: string, text: string) => Promise<boolean>
   getMessages: (dmId: string) => Message[]
+  clearError: () => void
 }
 
 let dmMsgId = 300
@@ -31,6 +33,7 @@ function toMessage(message: DmsApi.DmMessage): Message {
 export const useDmStore = create<DmState>((set, get) => ({
   conversations: {},
   isLoading: false,
+  pendingRoomId: null,
   error: null,
 
   loadMessages: async (dmId) => {
@@ -62,6 +65,7 @@ export const useDmStore = create<DmState>((set, get) => ({
   },
 
   sendDm: async (dmId, text) => {
+    set({ pendingRoomId: dmId, error: null })
     try {
       const created = await DmsApi.createMessage(dmId, text)
       set({
@@ -69,12 +73,14 @@ export const useDmStore = create<DmState>((set, get) => ({
           ...get().conversations,
           [dmId]: [...(get().conversations[dmId] || []), toMessage(created)],
         },
+        pendingRoomId: null,
       })
+      return true
     } catch (err) {
       if (!useAuthStore.getState().isMockMode) {
         const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem direta'
-        set({ error: message })
-        return
+        set({ error: message, pendingRoomId: null })
+        return false
       }
       const msg: Message = {
         id: `dm-${++dmMsgId}`,
@@ -91,11 +97,15 @@ export const useDmStore = create<DmState>((set, get) => ({
           ...get().conversations,
           [dmId]: [...(get().conversations[dmId] || []), msg],
         },
+        pendingRoomId: null,
       })
+      return true
     }
   },
 
   getMessages(dmId) {
     return get().conversations[dmId] || []
   },
+
+  clearError: () => set({ error: null }),
 }))

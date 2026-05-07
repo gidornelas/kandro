@@ -85,32 +85,39 @@ export function DmView() {
   const sendDm = useDmStore((s) => s.sendDm)
   const loadMessages = useDmStore((s) => s.loadMessages)
   const isLoading = useDmStore((s) => s.isLoading)
+  const pendingRoomId = useDmStore((s) => s.pendingRoomId)
+  const error = useDmStore((s) => s.error)
+  const clearError = useDmStore((s) => s.clearError)
   const [input, setInput] = React.useState('')
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const isSending = pendingRoomId === activeDmId
 
   const messages = React.useMemo(() => {
     if (!activeDmId) return []
     return conversations[activeDmId] || []
   }, [conversations, activeDmId])
-
-  const msgCount = messages.length
+  const lastMessageId = messages[messages.length - 1]?.id ?? null
 
   React.useEffect(() => {
     if (!activeDmId) return
+    clearError()
     void loadMessages(activeDmId)
-  }, [activeDmId, loadMessages])
+  }, [activeDmId, clearError, loadMessages])
 
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [msgCount])
+  }, [activeDmId, lastMessageId])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim()
-    if (!text || !activeDmId) return
-    void sendDm(activeDmId, text)
+    if (!text || !activeDmId || isSending) return
+    const nextInput = input
     setInput('')
+    const success = await sendDm(activeDmId, text)
+    if (success) return
+    setInput(nextInput)
   }
 
   if (!dm) {
@@ -126,7 +133,7 @@ export function DmView() {
       {/* DM Header */}
       <div
         style={{
-          height: '48px',
+          minHeight: '56px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
@@ -134,46 +141,107 @@ export function DmView() {
           borderBottom: '1px solid var(--color-border-subtle)',
           flexShrink: 0,
           background: 'var(--color-surface)',
-        }}
-      >
+          }}
+        >
         <div
           style={{
-            width: '28px',
-            height: '28px',
+            width: '34px',
+            height: '34px',
             borderRadius: '50%',
             background: user?.color || 'var(--color-accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 700,
             color: '#fff',
           }}
         >
-          {user?.initials}
+          {user?.initials || '?'}
         </div>
-        <span style={{ fontSize: '14px', fontWeight: 600 }}>{user?.name}</span>
-        <span
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: user?.status === 'online' ? 'var(--color-success)' : user?.status === 'busy' ? 'var(--color-danger)' : 'var(--color-text-tertiary)',
-          }}
-        />
-        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', textTransform: 'capitalize' }}>{user?.status}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user?.name || 'Mensagem direta'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: user?.status === 'online' ? 'var(--color-success)' : user?.status === 'busy' ? 'var(--color-danger)' : 'var(--color-text-tertiary)',
+              }}
+            />
+            <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', textTransform: 'capitalize' }}>
+              {user?.status || 'offline'}
+            </span>
+          </div>
+        </div>
+        <div style={{ flex: 1 }} />
+        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+          {messages.length > 0 ? `${messages.length} mensagem(ns)` : 'Nova conversa'}
+        </span>
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {isLoading ? (
           <Skeleton height={60} count={4} />
+        ) : error && messages.length === 0 ? (
+          <EmptyState
+            icon={<AppIcon name="warning" size={28} />}
+            title="Não foi possível carregar a conversa"
+            description={error}
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  if (!activeDmId) return
+                  clearError()
+                  void loadMessages(activeDmId)
+                }}
+                style={{
+                  minHeight: '38px',
+                  padding: '0 14px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-accent-border)',
+                  background: 'var(--color-accent-soft)',
+                  color: 'var(--color-accent)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Tentar novamente
+              </button>
+            }
+          />
         ) : messages.length === 0 ? (
-          <EmptyState icon={<AppIcon name="chat" size={28} />} title="Nenhuma mensagem ainda" description={`Diga olá para ${user?.name}!`} />
+          <EmptyState
+            icon={<AppIcon name="chat" size={28} />}
+            title="Nenhuma mensagem ainda"
+            description={user?.name ? `Diga olá para ${user.name} e comece a conversa.` : 'Envie a primeira mensagem desta conversa.'}
+          />
         ) : (
           messages.map((msg) => <DmMessageItem key={msg.id} msg={msg} />)
         )}
       </div>
       <div style={{ padding: '10px 20px 14px', borderTop: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
+        {error && messages.length > 0 && (
+          <div
+            style={{
+              marginBottom: '10px',
+              padding: '10px 12px',
+              borderRadius: '12px',
+              background: 'var(--color-danger-soft)',
+              border: '1px solid var(--color-danger-border)',
+              color: 'var(--color-danger)',
+              fontSize: '12px',
+              lineHeight: 1.5,
+            }}
+          >
+            {error}
+          </div>
+        )}
         <div
           style={{
             background: 'rgba(255,255,255,.78)',
@@ -185,15 +253,23 @@ export function DmView() {
             gap: '4px',
           }}
         >
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleSend()
+            }}
+            style={{ display: 'contents' }}
+          >
           <input
             type="text"
-            placeholder={`Mensagem para ${user?.name}...`}
+            placeholder={isSending ? 'Enviando mensagem...' : `Mensagem para ${user?.name || 'esta pessoa'}...`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            disabled={isSending}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                handleSend()
+                void handleSend()
               }
             }}
             style={{
@@ -208,17 +284,17 @@ export function DmView() {
             }}
           />
           <button
-            onClick={handleSend}
-            disabled={!input.trim()}
+            type="submit"
+            disabled={!input.trim() || isSending}
             style={{
               width: '28px',
               height: '28px',
               borderRadius: '8px',
               border: 'none',
-              background: input.trim() ? 'var(--color-accent)' : 'var(--color-border-subtle)',
+              background: input.trim() && !isSending ? 'var(--color-accent)' : 'var(--color-border-subtle)',
               color: '#fff',
               fontSize: '14px',
-              cursor: input.trim() ? 'pointer' : 'default',
+              cursor: input.trim() && !isSending ? 'pointer' : 'default',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -228,6 +304,7 @@ export function DmView() {
           >
             <AppIcon name="send" size={14} />
           </button>
+          </form>
         </div>
       </div>
     </div>

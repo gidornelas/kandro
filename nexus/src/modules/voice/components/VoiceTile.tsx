@@ -19,7 +19,11 @@ export function VoiceTile({
   const activeSpeakerId = useVoiceStore((s) => s.activeSpeakerId)
   const isSpeaking = activeSpeakerId === participant.userId
 
-  const sizeMap = { sm: { avatar: 40, font: 11 }, md: { avatar: 64, font: 13 }, lg: { avatar: 96, font: 16 } }
+  const sizeMap = {
+    sm: { avatar: 40, font: 11, minHeight: 80 },
+    md: { avatar: 64, font: 13, minHeight: 140 },
+    lg: { avatar: 96, font: 16, minHeight: 280 },
+  }
   const s = sizeMap[size]
   const Component = onClick ? 'button' : 'div'
 
@@ -29,6 +33,7 @@ export function VoiceTile({
       onClick={onClick}
       aria-label={onClick ? `Selecionar participante ${user?.name ?? participant.userId}` : undefined}
       aria-pressed={onClick ? selected : undefined}
+      tabIndex={onClick ? 0 : undefined}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -42,10 +47,24 @@ export function VoiceTile({
         transition: 'background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease',
         cursor: onClick ? 'pointer' : 'default',
         position: 'relative',
-        minHeight: size === 'lg' ? '280px' : size === 'md' ? '140px' : '72px',
+        minHeight: s.minHeight,
         flex: size === 'lg' ? 1 : undefined,
         fontFamily: 'var(--font-body)',
         textAlign: 'center',
+      }}
+      onFocus={(e) => {
+        if (!onClick) return
+        e.currentTarget.style.boxShadow = '0 0 0 4px rgba(47,128,237,.5)'
+        e.currentTarget.style.outline = 'none'
+      }}
+      onBlur={(e) => {
+        if (!onClick) return
+        e.currentTarget.style.boxShadow = selected ? '0 0 0 4px rgba(47,128,237,.16)' : isSpeaking ? '0 0 0 4px rgba(53,183,121,.20)' : 'none'
+      }}
+      onKeyDown={(e) => {
+        if (!onClick || (e.key !== 'Enter' && e.key !== ' ')) return
+        e.preventDefault()
+        onClick?.()
       }}
       onMouseEnter={(e) => {
         if (!onClick) return

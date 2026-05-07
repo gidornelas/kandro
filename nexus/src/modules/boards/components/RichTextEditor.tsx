@@ -57,16 +57,46 @@ function ToolbarBtn({
 export function RichTextEditor({ value, onChange, readOnly = false }: { value: string; onChange: (html: string) => void; readOnly?: boolean }) {
   const editorRef = React.useRef<HTMLDivElement>(null)
   const [focused, setFocused] = React.useState(false)
+  const [draftValue, setDraftValue] = React.useState(value)
+  const [isComposing, setIsComposing] = React.useState(false)
+  const editorValue = focused || isComposing ? draftValue : value
 
   const exec = (cmd: string, arg?: string) => {
     document.execCommand(cmd, false, arg)
-    if (editorRef.current) onChange(editorRef.current.innerHTML)
+    if (editorRef.current) {
+      setDraftValue(editorRef.current.innerHTML)
+      onChange(editorRef.current.innerHTML)
+    }
   }
+
+  const handleBlur = React.useCallback(() => {
+    setFocused(false)
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML)
+    }
+  }, [onChange])
+
+  const handleInput = React.useCallback(() => {
+    if (readOnly || !editorRef.current || isComposing) return
+    setDraftValue(editorRef.current.innerHTML)
+  }, [readOnly, isComposing])
+
+  const handleCompositionStart = React.useCallback(() => {
+    setIsComposing(true)
+  }, [])
+
+  const handleCompositionEnd = React.useCallback(() => {
+    setIsComposing(false)
+    if (editorRef.current) {
+      setDraftValue(editorRef.current.innerHTML)
+      onChange(editorRef.current.innerHTML)
+    }
+  }, [onChange])
 
   return (
     <div
       style={{
-        background: focused ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.45)',
+        background: focused ? 'rgba(255,255,255,.82)' : 'rgba(255,255,255,.48)',
         border: `1px solid ${focused ? 'var(--color-accent-border)' : 'var(--color-border-subtle)'}`,
         borderRadius: '10px',
         overflow: 'hidden',
@@ -80,8 +110,8 @@ export function RichTextEditor({ value, onChange, readOnly = false }: { value: s
           alignItems: 'center',
           gap: '2px',
           padding: '6px 8px',
-          borderBottom: '1px solid var(--color-border-subtle)',
-          background: 'rgba(255,255,255,.55)',
+          borderBottom: `1px solid ${focused ? 'var(--color-border-subtle)' : 'var(--color-border-subtle)'}`,
+          background: 'rgba(255,255,255,.58)',
           flexWrap: 'wrap',
         }}
       >
@@ -107,19 +137,18 @@ export function RichTextEditor({ value, onChange, readOnly = false }: { value: s
       <div
         ref={editorRef}
         contentEditable={!readOnly}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setFocused(false)
-          if (editorRef.current) onChange(editorRef.current.innerHTML)
+        onFocus={() => {
+          setFocused(true)
+          setDraftValue(value)
         }}
-        onInput={() => {
-          if (readOnly || !editorRef.current) return
-          onChange(editorRef.current.innerHTML)
-        }}
-        dangerouslySetInnerHTML={{ __html: value }}
+        onBlur={handleBlur}
+        onInput={handleInput}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
+        dangerouslySetInnerHTML={{ __html: editorValue }}
         style={{
-          minHeight: '100px',
-          maxHeight: '240px',
+          minHeight: '80px',
+          maxHeight: '200px',
           overflowY: 'auto',
           padding: '10px 12px',
           fontSize: '13px',
@@ -127,6 +156,8 @@ export function RichTextEditor({ value, onChange, readOnly = false }: { value: s
           color: 'var(--color-text-primary)',
           lineHeight: 1.6,
           outline: 'none',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
         }}
       />
     </div>

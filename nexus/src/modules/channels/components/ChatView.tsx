@@ -28,17 +28,17 @@ const MessageItem = React.memo(function MessageItem({
       onMouseEnter={() => setShowReactions(true)}
       onMouseLeave={() => setShowReactions(false)}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
         <div
           style={{
-            width: '32px',
-            height: '32px',
+            width: '28px',
+            height: '28px',
             borderRadius: '50%',
             background: user?.color || 'var(--color-accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '11px',
+            fontSize: '10px',
             fontWeight: 700,
             color: '#fff',
             flexShrink: 0,
@@ -46,11 +46,13 @@ const MessageItem = React.memo(function MessageItem({
         >
           {user?.initials || '?'}
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 600 }}>{user?.name || msg.user}</span>
-        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{msg.time}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>{user?.name || msg.user}</span>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{msg.time}</span>
+        </div>
       </div>
-      <div style={{ paddingLeft: '40px' }}>
-        <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--color-text-primary)', margin: 0 }}>
+      <div style={{ paddingLeft: '40px', paddingRight: '8px' }}>
+        <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--color-text-primary)', margin: 0, wordBreak: 'break-word' }}>
           {msg.text}
         </p>
         {msg.attachment && (

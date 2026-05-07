@@ -11,11 +11,13 @@ export function LayoutGrid() {
       style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gridTemplateRows: 'repeat(2, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridAutoRows: 'min-content',
         gap: '12px',
-        padding: '20px',
-        overflow: 'auto',
+        padding: '16px',
+        overflowY: 'auto',
+        alignItems: 'start',
+        justifyItems: 'center',
       }}
     >
       {participants.slice(0, 4).map((p) => (

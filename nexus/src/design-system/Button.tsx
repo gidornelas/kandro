@@ -67,6 +67,13 @@ export function Button({
       disabled={isDisabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(47,128,237,.5)'
+        e.currentTarget.style.outline = 'none'
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = 'none'
+      }}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

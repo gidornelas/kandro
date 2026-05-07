@@ -75,11 +75,12 @@ function ParticipantMediaTile({
   onClick?: () => void
 }) {
   const user = useAppDataStore((s) => s.users[participant.identity])
-  const Component = onClick ? 'button' : 'div'
-  const minHeight = size === 'lg' ? '280px' : size === 'md' ? '180px' : '84px'
+  const minHeightMap = { sm: '80px', md: '140px', lg: '280px' }
+  const minHeight = minHeightMap[size]
+  const Element = onClick ? 'button' : 'div'
 
   return (
-    <Component
+    <Element
       {...(onClick ? { type: 'button' as const } : {})}
       onClick={onClick}
       aria-label={onClick ? `Selecionar participante ${user?.name || participant.name || participant.identity}` : undefined}
@@ -99,12 +100,12 @@ function ParticipantMediaTile({
         transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease',
         boxShadow: participant.isSpeaking ? '0 0 0 3px rgba(53,183,121,.12)' : 'none',
       }}
-      onMouseEnter={(event) => {
+      onMouseEnter={(event: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
         if (!onClick) return
         event.currentTarget.style.transform = 'translateY(-1px)'
         event.currentTarget.style.boxShadow = 'var(--shadow-soft)'
       }}
-      onMouseLeave={(event) => {
+      onMouseLeave={(event: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
         if (!onClick) return
         event.currentTarget.style.transform = 'none'
         event.currentTarget.style.boxShadow = participant.isSpeaking ? '0 0 0 3px rgba(53,183,121,.12)' : 'none'
@@ -152,7 +153,7 @@ function ParticipantMediaTile({
           {participant.isScreenShareEnabled && <AppIcon name="screen" size={12} color="#fff" />}
         </div>
       </div>
-    </Component>
+    </Element>
   )
 }
 

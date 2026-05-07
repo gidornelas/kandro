@@ -31,8 +31,8 @@ const PROJECT_TABS = [
 
 function BoardListView({ columns, cards }: { columns: { id: string; name: string }[]; cards: { id: string; col: string; title: string; priority: string; dueType: string }[] }) {
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '18px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '920px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '960px' }}>
         {columns.map((column) => {
           const columnCards = cards.filter((card) => card.col === column.id)
           if (columnCards.length === 0) return null
@@ -41,7 +41,7 @@ function BoardListView({ columns, cards }: { columns: { id: string; name: string
             <section
               key={column.id}
               style={{
-                borderRadius: '16px',
+                borderRadius: '14px',
                 border: '1px solid var(--color-border-subtle)',
                 background: 'var(--color-surface-elevated)',
                 overflow: 'hidden',
@@ -52,12 +52,12 @@ function BoardListView({ columns, cards }: { columns: { id: string; name: string
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px 16px',
+                  padding: '10px 14px',
                   borderBottom: '1px solid var(--color-border-subtle)',
                 }}
               >
-                <strong style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{column.name}</strong>
-                <span style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>{columnCards.length} itens</span>
+                <strong style={{ fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: 600 }}>{column.name}</strong>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{columnCards.length} itens</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {columnCards.map((card, index) => (
@@ -66,13 +66,20 @@ function BoardListView({ columns, cards }: { columns: { id: string; name: string
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'minmax(0,1fr) auto auto',
-                      gap: '12px',
+                      gap: '10px',
                       alignItems: 'center',
-                      padding: '12px 16px',
+                      padding: '10px 14px',
                       borderTop: index === 0 ? 'none' : '1px solid var(--color-border-subtle)',
+                      transition: 'background .15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,.52)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
                     }}
                   >
-                    <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{card.title}</span>
+                    <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>{card.title}</span>
                     <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{card.priority}</span>
                     <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{card.dueType === 'overdue' ? 'Atrasado' : card.dueType === 'warning' ? 'Em atenção' : 'No prazo'}</span>
                   </div>
@@ -97,23 +104,23 @@ function BoardTimelineView({ cards }: { cards: { id: string; title: string; dueT
   ]
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '18px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         {sections.map((section) => (
           <section
             key={section.id}
             style={{
-              borderRadius: '16px',
+              borderRadius: '14px',
               border: '1px solid var(--color-border-subtle)',
               background: 'var(--color-surface-elevated)',
-              padding: '14px',
+              padding: '12px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <strong style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{section.title}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: 600 }}>{section.title}</strong>
               <span style={{ fontSize: '12px', color: section.tone }}>{section.items.length}</span>
             </div>
             {section.items.length === 0 ? (
@@ -123,16 +130,17 @@ function BoardTimelineView({ cards }: { cards: { id: string; title: string; dueT
                 <div
                   key={card.id}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     borderRadius: '12px',
                     background: 'rgba(255,255,255,.56)',
                     border: '1px solid var(--color-border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
+                    transition: 'background .15s',
                   }}
                 >
-                  <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{card.title}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>{card.title}</span>
                   <div style={{ height: '6px', background: 'rgba(255,255,255,.72)', borderRadius: '999px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${card.progress}%`, borderRadius: '999px', background: section.tone }} />
                   </div>
@@ -178,13 +186,14 @@ function KanbanCardItem({
         background: 'var(--color-surface-elevated)',
         border: '1px solid var(--color-border-subtle)',
         borderRadius: '14px',
-        padding: '12px 13px',
+        padding: '12px',
         cursor: readOnly ? 'pointer' : 'grab',
-        transition: 'background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease',
+        transition: 'background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease',
         position: 'relative',
-        opacity: isDragging ? 0.5 : 1,
-        transform: isDragging ? 'scale(1.02)' : 'none',
+        opacity: isDragging ? 0.6 : 1,
+        transform: isDragging ? 'scale(1.02) rotate(1deg)' : 'none',
         boxShadow: isDragging ? 'var(--shadow-soft)' : 'none',
+        minHeight: 'fit-content',
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget
@@ -200,18 +209,26 @@ function KanbanCardItem({
         el.style.transform = 'none'
         el.style.boxShadow = 'none'
       }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-accent-border)'
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(47,128,237,.3)'
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
     >
       {card.labels.length > 0 && (
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '7px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
           {card.labels.map((label: string, i: number) => (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#2f80ed', opacity: 0.72 }} />
+            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#2f80ed', opacity: 0.72 }} />
               {label}
             </span>
           ))}
         </div>
       )}
-      <div style={{ fontSize: '13px', fontWeight: 500, lineHeight: 1.45, color: 'var(--color-text-primary)', marginBottom: '10px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 500, lineHeight: 1.45, color: 'var(--color-text-primary)', marginBottom: '10px', wordBreak: 'break-word' }}>
         {card.title}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -296,6 +313,8 @@ const KanbanColumn = React.memo(function KanbanColumn({ colId, readOnly = false 
       ref={setNodeRef}
       style={{
         width: '260px',
+        minWidth: '240px',
+        maxWidth: '320px',
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -410,7 +429,7 @@ export function BoardView() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 18px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '12px 16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         {!canViewBoard ? (
           <EmptyState
             icon={<AppIcon name="lock" size={28} />}

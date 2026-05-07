@@ -10,13 +10,13 @@ export function LayoutVoice() {
     <div
       style={{
         flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '14px',
-        padding: '20px',
-        flexWrap: 'wrap',
-        overflow: 'auto',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '12px',
+        padding: '16px',
+        overflowY: 'auto',
+        alignItems: 'start',
+        justifyItems: 'center',
       }}
     >
       {participants.map((p) => (

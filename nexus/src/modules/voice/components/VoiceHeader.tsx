@@ -27,7 +27,7 @@ export function VoiceHeader() {
   return (
     <div
       style={{
-        height: '52px',
+        minHeight: '52px',
         padding: '0 16px',
         background: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-border-subtle)',
@@ -36,6 +36,7 @@ export function VoiceHeader() {
         gap: '10px',
         flexShrink: 0,
         backdropFilter: 'var(--blur-panel)',
+        flexWrap: 'wrap',
       }}
     >
       <div
@@ -99,6 +100,13 @@ export function VoiceHeader() {
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'background .15s ease, border-color .15s ease, color .15s ease',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(47,128,237,.4)'
+              e.currentTarget.style.outline = 'none'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <AppIcon name={l.icon} size={16} />

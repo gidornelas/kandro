@@ -178,6 +178,7 @@ describe("boards service — cards", () => {
             _count: { subtasks: 2, comments: 1 },
             cardThreadMessages: [{ id: "tm1" }, { id: "tm2" }],
             subtasks: [{ done: true }, { done: false }],
+            progress: 20,
           },
         ],
       },
@@ -190,6 +191,38 @@ describe("boards service — cards", () => {
     expect(result[0].cards[0].subtaskCount).toBe(2);
     expect(result[0].cards[0].commentCount).toBe(1);
     expect(result[0].cards[0].threadCount).toBe(2);
+  });
+
+  it("keeps persisted progress when the card has no subtasks", async () => {
+    const prisma = createMockPrisma();
+    const service = createBoardService(prisma);
+    prisma.kanbanColumn.findMany.mockResolvedValue([
+      {
+        id: "col1",
+        channelId: "ch-1",
+        name: "Backlog",
+        color: "#9899b0",
+        position: 0,
+        cards: [
+          {
+            id: "card1",
+            columnId: "col1",
+            title: "Task 1",
+            position: 0,
+            labels: [],
+            assignees: [],
+            _count: { subtasks: 0, comments: 0 },
+            cardThreadMessages: [],
+            subtasks: [],
+            progress: 65,
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.listCards("ch-1");
+
+    expect(result[0].cards[0].progress).toBe(65);
   });
 
   it("gets a card with progress calculation", async () => {
@@ -254,14 +287,21 @@ describe("boards service — cards", () => {
     prisma.kanbanCard.update.mockResolvedValue({
       id: "card1",
       title: "Updated Title",
+      progress: 72,
       column: {},
       labels: [],
       assignees: [],
     });
 
-    const result = await service.updateCard("card1", { title: "Updated Title" }, "ws-1", "u1");
+    const result = await service.updateCard("card1", { title: "Updated Title", progress: 72 }, "ws-1", "u1");
 
     expect(result.title).toBe("Updated Title");
+    expect(prisma.kanbanCard.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "card1" },
+        data: { title: "Updated Title", progress: 72 },
+      })
+    );
   });
 
   it("moves a card between columns using transaction", async () => {

@@ -12,13 +12,14 @@ export function LayoutSpotlight() {
   return (
     <div style={{ flex: 1, display: 'flex', gap: '12px', padding: '16px', overflow: 'hidden' }}>
       {/* Main speaker */}
-      <div style={{ flex: 3, minWidth: 0 }}>
+      <div style={{ flex: 3, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {activeParticipant ? (
           <VoiceTile participant={activeParticipant} size="lg" showWaveform />
         ) : (
           <div
             style={{
-              height: '100%',
+              flex: 1,
+              minHeight: '200px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -38,12 +39,13 @@ export function LayoutSpotlight() {
       <div
         style={{
           flex: 1,
-          minWidth: '140px',
+          minWidth: '120px',
           maxWidth: '180px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
           overflowY: 'auto',
+          overflowX: 'hidden',
         }}
       >
         {others.map((p) => (

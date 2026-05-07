@@ -171,6 +171,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         priority: updates.priority,
         priorityColor: updates.priorityColor,
         due: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+        progress: updates.progress,
       })
     } catch (err) {
       if (useAuthStore.getState().isMockMode) return

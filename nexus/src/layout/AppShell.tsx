@@ -19,7 +19,12 @@ export function AppShell() {
       if (!containerRef.current) return
       const rect = containerRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left
-      setSidebarWidth(Math.min(MAX_SIDEBAR, Math.max(MIN_SIDEBAR, x)))
+
+      // Responsividade: em telas pequenas, limita o tamanho máximo da sidebar
+      const isSmallScreen = window.innerWidth < 768
+      const dynamicMax = isSmallScreen ? Math.min(MAX_SIDEBAR, window.innerWidth - 200) : MAX_SIDEBAR
+
+      setSidebarWidth(Math.min(dynamicMax, Math.max(MIN_SIDEBAR, x)))
     }
 
     const onUp = () => setIsResizing(false)

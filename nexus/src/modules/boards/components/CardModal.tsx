@@ -119,9 +119,21 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
   return (
     <>
       <Modal open onClose={close} title="" size="xl">
-        <div style={{ display: 'flex', gap: '32px', width: '100%' }}>
+        <style>{`
+          @media (max-width: 768px) {
+            .card-modal-container {
+              flex-direction: column !important;
+            }
+            .card-modal-sidebar {
+              width: 100% !important;
+              minWidth: unset !important;
+              order: -1 !important;
+            }
+          }
+        `}</style>
+        <div className="card-modal-container" style={{ display: 'flex', flexDirection: 'row', gap: '32px', width: '100%' }}>
         {/* Main column */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '22px' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Title */}
           <input
             type="text"
@@ -454,7 +466,7 @@ export function CardModal({ readOnly = false, canComment = true }: { readOnly?: 
         </div>
 
         {/* Sidebar */}
-        <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div className="card-modal-sidebar" style={{ width: '220px', minWidth: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Actions header */}
           <div>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: '8px' }}>

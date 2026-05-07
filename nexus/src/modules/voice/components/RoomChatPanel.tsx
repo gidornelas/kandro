@@ -16,18 +16,36 @@ export function RoomChatPanel() {
   if (!chatOpen) return null
 
   return (
-    <div
-      style={{
-        width: '300px',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--color-surface)',
-        borderLeft: '1px solid var(--color-border-subtle)',
-        backdropFilter: 'var(--blur-panel)',
-        animation: 'slideIn .2s ease',
-      }}
-    >
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .room-chat-panel {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            border-left: none !important;
+            z-index: 100 !important;
+          }
+        }
+      `}</style>
+      <div
+        className="room-chat-panel"
+        style={{
+          width: '300px',
+          minWidth: '250px',
+          maxWidth: '400px',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--color-surface)',
+          borderLeft: '1px solid var(--color-border-subtle)',
+          backdropFilter: 'var(--blur-panel)',
+          animation: 'slideIn .2s ease',
+        }}
+      >
       <style>{`@keyframes slideIn { from { transform: translateX(20px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }`}</style>
       {/* Header */}
       <div
@@ -160,5 +178,6 @@ export function RoomChatPanel() {
         </div>
       </div>
     </div>
+    </>
   )
 }

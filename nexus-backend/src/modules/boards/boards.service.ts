@@ -486,11 +486,12 @@ export function createBoardService(prisma: PrismaClient) {
 function calculateProgress(card: {
   _count: { subtasks: number; comments: number };
   subtasks?: { done: boolean }[];
+  progress?: number;
 }): number {
   if (card.subtasks && card.subtasks.length > 0) {
     return Math.round(
       (card.subtasks.filter((s) => s.done).length / card.subtasks.length) * 100
     );
   }
-  return 0;
+  return card.progress ?? 0;
 }
